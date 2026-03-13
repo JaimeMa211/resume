@@ -1,4 +1,5 @@
-﻿import Link from "next/link";
+﻿import { Suspense } from "react";
+import Link from "next/link";
 
 import ApplyUpgradeFromQuery from "@/components/ApplyUpgradeFromQuery";
 import HeaderAuthActions from "@/components/HeaderAuthActions";
@@ -31,7 +32,9 @@ export default function FeaturesPage() {
       </header>
 
       <main className="py-8">
-        <ApplyUpgradeFromQuery />
+        <Suspense fallback={null}>
+          <ApplyUpgradeFromQuery />
+        </Suspense>
 
         <section className="mx-auto mb-4 w-full max-w-7xl px-6">
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
