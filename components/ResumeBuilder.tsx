@@ -1,15 +1,28 @@
 ﻿"use client";
 
-import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  CSSProperties,
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { HarvardTemplate } from "@/components/templates/HarvardTemplate";
 import { MinimalistTemplate } from "@/components/templates/MinimalistTemplate";
 import { ModernTechTemplate } from "@/components/templates/ModernTechTemplate";
 import type { ResumeData, WorkExperience } from "@/components/templates/types";
-import { Button } from "@/components/ui/button";
+import { normalizeResumeData } from "@/lib/resume-data";
 
 type ResumeBuilderProps = {
   data: ResumeData;
+};
+
+export type ResumeBuilderHandle = {
+  print: () => void;
 };
 
 type TemplateKey = "harvard" | "modern-tech" | "minimalist";
@@ -21,9 +34,9 @@ type TemplateOption = {
 };
 
 const templateOptions: TemplateOption[] = [
-  { key: "harvard", label: "Harvard", subtitle: "投行经典款" },
-  { key: "modern-tech", label: "Modern Tech", subtitle: "互联网双栏款" },
-  { key: "minimalist", label: "Minimalist", subtitle: "极简干练款" },
+  { key: "harvard", label: "经典结构", subtitle: "适合通用求职" },
+  { key: "modern-tech", label: "现代双栏", subtitle: "适合互联网岗位" },
+  { key: "minimalist", label: "极简单页", subtitle: "适合作品导向内容" },
 ];
 
 function getExperienceRank(duration: string): number {
@@ -44,7 +57,7 @@ function sortExperienceByDateDesc(items: WorkExperience[]): WorkExperience[] {
   return [...items].sort((a, b) => getExperienceRank(b.duration) - getExperienceRank(a.duration));
 }
 
-export function ResumeBuilder({ data }: ResumeBuilderProps) {
+export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>(function ResumeBuilder({ data }, ref) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey>("harvard");
   const [printScale, setPrintScale] = useState(1);
   const resumeContentRef = useRef<HTMLDivElement>(null);
@@ -56,7 +69,6 @@ export function ResumeBuilder({ data }: ResumeBuilderProps) {
       return 1;
     }
 
-    // A4 at CSS 96 DPI: 210mm x 297mm => ~794px x ~1123px
     const A4_WIDTH_PX = 794;
     const A4_HEIGHT_PX = 1123;
     const width = contentNode.scrollWidth;
@@ -90,11 +102,20 @@ export function ResumeBuilder({ data }: ResumeBuilderProps) {
     window.setTimeout(() => window.print(), 50);
   }, [syncPrintScale]);
 
-  const normalizedData = useMemo<ResumeData>(
+  useImperativeHandle(
+    ref,
     () => ({
-      ...data,
-      work_experience: sortExperienceByDateDesc(data.work_experience),
+      print: handlePrint,
     }),
+    [handlePrint],
+  );
+
+  const normalizedData = useMemo<ResumeData>(
+    () =>
+      normalizeResumeData({
+        ...data,
+        work_experience: sortExperienceByDateDesc(data.work_experience ?? []),
+      }),
     [data],
   );
 
@@ -111,7 +132,7 @@ export function ResumeBuilder({ data }: ResumeBuilderProps) {
   }, [normalizedData, selectedTemplate]);
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-3">
       <style jsx global>{`
         @media print {
           @page {
@@ -165,7 +186,7 @@ export function ResumeBuilder({ data }: ResumeBuilderProps) {
         }
       `}</style>
 
-      <div className="no-print flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3">
+      <div className="no-print rounded-[18px] border border-stone-300/80 bg-[#fffdfa] p-2.5 shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
         <div className="w-full sm:hidden">
           <label className="sr-only" htmlFor="template-selector">
             选择模板
@@ -174,7 +195,7 @@ export function ResumeBuilder({ data }: ResumeBuilderProps) {
             id="template-selector"
             value={selectedTemplate}
             onChange={(event) => setSelectedTemplate(event.target.value as TemplateKey)}
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 outline-none transition focus:border-zinc-600"
+            className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-[#d97745] focus:ring-4 focus:ring-[#f3d5c2]/60"
           >
             {templateOptions.map((option) => (
               <option key={option.key} value={option.key}>
@@ -184,7 +205,7 @@ export function ResumeBuilder({ data }: ResumeBuilderProps) {
           </select>
         </div>
 
-        <div className="hidden flex-wrap gap-2 sm:flex">
+        <div className="hidden gap-2 sm:flex sm:flex-wrap">
           {templateOptions.map((option) => {
             const active = option.key === selectedTemplate;
             return (
@@ -192,26 +213,22 @@ export function ResumeBuilder({ data }: ResumeBuilderProps) {
                 key={option.key}
                 type="button"
                 onClick={() => setSelectedTemplate(option.key)}
-                className={`rounded-md border px-3 py-2 text-left transition ${
+                className={`rounded-[18px] border px-4 py-2.5 text-left transition ${
                   active
-                    ? "border-zinc-900 bg-zinc-900 text-white"
-                    : "border-zinc-300 bg-white text-zinc-800 hover:border-zinc-500"
+                    ? "border-slate-900 bg-slate-900 text-white shadow-[0_10px_18px_rgba(15,23,42,0.12)]"
+                    : "border-stone-300 bg-white text-slate-800 hover:border-stone-400 hover:bg-stone-50"
                 }`}
               >
-                <p className="text-xs font-semibold">{option.label}</p>
-                <p className={`text-[11px] ${active ? "text-zinc-100" : "text-zinc-500"}`}>{option.subtitle}</p>
+                <p className="text-sm font-semibold leading-5">{option.label}</p>
+                <p className={`mt-1 text-xs leading-5 ${active ? "text-white/75" : "text-slate-500"}`}>{option.subtitle}</p>
               </button>
             );
           })}
         </div>
-
-        <Button type="button" className="shrink-0 bg-zinc-900 text-white hover:bg-zinc-800" onClick={handlePrint}>
-          一键导出高清 PDF
-        </Button>
       </div>
 
-      <div className="resume-print-root overflow-auto rounded-lg border border-zinc-300 bg-zinc-100 p-4 print:bg-white print:p-0">
-        <div className="resume-print-paper mx-auto h-[297mm] w-[210mm] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] print:shadow-none">
+      <div className="resume-print-root overflow-auto rounded-[30px] border border-stone-300/80 bg-[linear-gradient(180deg,#f3eadf_0%,#ede3d6_100%)] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] print:bg-white print:p-0">
+        <div className="resume-print-paper mx-auto h-[297mm] w-[210mm] max-w-none overflow-hidden rounded-[22px] border border-stone-300 bg-white shadow-[0_28px_60px_rgba(15,23,42,0.14)] print:rounded-none print:border-0 print:shadow-none">
           <div
             ref={resumeContentRef}
             className="resume-print-content h-full w-full"
@@ -223,4 +240,4 @@ export function ResumeBuilder({ data }: ResumeBuilderProps) {
       </div>
     </section>
   );
-}
+});

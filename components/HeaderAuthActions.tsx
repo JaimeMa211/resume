@@ -40,14 +40,17 @@ function formatLoginTime(loginAt: string): string {
 export default function HeaderAuthActions({ className, loginClassName, registerClassName, logoutClassName }: HeaderAuthActionsProps) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [session, setSession] = useState<AuthSession | null>(() => getCurrentSession());
-  const [accountMeta, setAccountMeta] = useState<AccountMeta | null>(() => getCurrentAccountMeta());
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [accountMeta, setAccountMeta] = useState<AccountMeta | null>(null);
 
   useEffect(() => {
-    return subscribeAuthChange(() => {
+    const syncAuthState = () => {
       setSession(getCurrentSession());
       setAccountMeta(getCurrentAccountMeta());
-    });
+    };
+
+    syncAuthState();
+    return subscribeAuthChange(syncAuthState);
   }, []);
 
   function handleLogout() {

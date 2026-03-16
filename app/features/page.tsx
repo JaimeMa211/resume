@@ -22,6 +22,9 @@ export default function FeaturesPage() {
             <Link href="/features" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#ec5b13]">
               功能
             </Link>
+            <Link href="/builder" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#ec5b13]">
+              制作简历
+            </Link>
             <Link href="/pricing" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#ec5b13]">
               价格
             </Link>
@@ -37,8 +40,11 @@ export default function FeaturesPage() {
         </Suspense>
 
         <section className="mx-auto mb-4 w-full max-w-7xl px-6">
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-            隐私提示：您的简历在解析后会立即销毁，不作保存，仅用于本次优化。
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            <span>隐私提示：您的简历在解析后会立即销毁，不作保存，仅用于本次优化。</span>
+            <Link href="/builder" className="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-100">
+              切换到简历制作器
+            </Link>
           </div>
         </section>
 

@@ -1,4 +1,5 @@
 ﻿import Link from "next/link";
+
 import HeaderAuthActions from "@/components/HeaderAuthActions";
 import HomeHighlightPreview from "@/components/HomeHighlightPreview";
 
@@ -56,11 +57,13 @@ export default function LandingPage() {
             <Link href="/features" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#ec5b13]">
               功能
             </Link>
+            <Link href="/builder" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#ec5b13]">
+              制作简历
+            </Link>
             <Link href="/pricing" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#ec5b13]">
               价格
             </Link>
           </nav>
-
 
           <HeaderAuthActions
             loginClassName="hidden text-sm font-medium text-slate-600 hover:text-slate-900 sm:block"
@@ -88,6 +91,12 @@ export default function LandingPage() {
                 className="w-full rounded-xl bg-[#ec5b13] px-8 py-4 text-center text-lg font-bold text-white shadow-lg shadow-[#ec5b13]/25 transition-all hover:bg-[#d6500f] sm:w-auto"
               >
                 查看优化展示
+              </Link>
+              <Link
+                href="/builder"
+                className="w-full rounded-xl border border-[#ec5b13] bg-white px-8 py-4 text-center text-lg font-bold text-[#ec5b13] transition-all hover:bg-[#fff1e9] sm:w-auto"
+              >
+                开始制作简历
               </Link>
               <Link
                 href="/pricing"
@@ -158,7 +167,6 @@ export default function LandingPage() {
         <section id="resume-optimizer" className="scroll-mt-24 border-y border-slate-200 bg-[#fff7f3] py-20">
           <div className="mx-auto max-w-7xl px-6">
             <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
-
               <div className="grid lg:grid-cols-[360px_minmax(0,1fr)]">
                 <aside className="border-b border-slate-100 bg-slate-50 lg:border-b-0 lg:border-r lg:border-slate-100">
                   <div className="flex items-center gap-3 border-b border-slate-200 px-6 py-6">
@@ -272,12 +280,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
