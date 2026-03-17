@@ -1,4 +1,4 @@
-﻿export type WorkExperience = {
+export type WorkExperience = {
   company: string;
   role: string;
   duration: string;
@@ -54,6 +54,7 @@ export type PersonalInfo = {
   phone?: string;
   location?: string;
   website?: string;
+  photo?: string;
   linkedin?: string;
   github?: string;
 };

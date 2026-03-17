@@ -309,7 +309,7 @@ export default function ResumeOptimizerWorkspace() {
 
   return (
     <div className="mx-auto grid w-full max-w-7xl gap-6 px-6 pb-14 text-slate-900 lg:grid-cols-[360px_minmax(0,1fr)]">
-      <aside className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <aside className="space-y-6 rounded-[30px] border border-stone-300/70 bg-[rgba(255,253,250,0.9)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
         <div>
           <h1 className="text-xl font-bold tracking-tight">AI 简历优化器</h1>
           <p className="mt-2 text-sm text-slate-500">上传 PDF 简历或直接粘贴文本，再输入 JD，系统会生成更适合岗位的表达版本。</p>
@@ -331,42 +331,42 @@ export default function ResumeOptimizerWorkspace() {
             }}
             onDragOver={(event) => event.preventDefault()}
             className={cn(
-              "flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-6 text-center transition",
-              isDragActive ? "border-[#ec5b13] bg-orange-50" : "border-slate-300 bg-slate-50 hover:border-slate-400",
+              "flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed px-4 py-6 text-center transition",
+              isDragActive ? "border-[#b85c2c] bg-[#f7efe6]" : "border-stone-300 bg-[#f8f4ed] hover:border-stone-400",
             )}
           >
             <p className="text-sm font-medium text-slate-700">拖拽 PDF 到这里，或点击上传</p>
             <p className="text-xs text-slate-500">仅支持 .pdf 格式</p>
-            {uploadedFileName ? <p className="text-xs font-medium text-[#ec5b13]">当前文件：{uploadedFileName}</p> : null}
+            {uploadedFileName ? <p className="text-xs font-medium text-[#b85c2c]">当前文件：{uploadedFileName}</p> : null}
           </label>
           {isParsingPdf ? <p className="mt-2 text-xs text-slate-500">正在解析 PDF...</p> : null}
         </section>
 
         <section>
           <label className="mb-3 block text-sm font-semibold text-slate-700" htmlFor="resume-text">简历文本</label>
-          <textarea id="resume-text" rows={10} value={resumeText} onChange={(event) => setResumeText(event.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#ec5b13]" placeholder="如果不上传 PDF，也可以直接粘贴简历文本。" />
+          <textarea id="resume-text" rows={10} value={resumeText} onChange={(event) => setResumeText(event.target.value)} className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#b85c2c]" placeholder="如果不上传 PDF，也可以直接粘贴简历文本。" />
         </section>
 
         <section>
           <label className="mb-3 block text-sm font-semibold text-slate-700" htmlFor="jd-input">职位描述 JD</label>
-          <textarea id="jd-input" rows={12} value={jdText} onChange={(event) => setJdText(event.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#ec5b13]" placeholder="粘贴目标岗位 JD。" />
+          <textarea id="jd-input" rows={12} value={jdText} onChange={(event) => setJdText(event.target.value)} className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#b85c2c]" placeholder="粘贴目标岗位 JD。" />
         </section>
 
-        {error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+        {error ? <div className="rounded-[20px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
-        <button type="button" onClick={handleOptimize} disabled={!canSubmit} className={cn("w-full rounded-xl px-4 py-3 font-semibold text-white transition", canSubmit ? "bg-[#ec5b13] hover:bg-[#d6500f]" : "cursor-not-allowed bg-slate-300")}>
+        <button type="button" onClick={handleOptimize} disabled={!canSubmit} className={cn("w-full rounded-full px-4 py-3 font-semibold text-white transition", canSubmit ? "bg-[#b85c2c] hover:bg-[#9f4d24]" : "cursor-not-allowed bg-slate-300")}>
           {isSubmitting ? "正在优化中..." : "优化简历"}
         </button>
       </aside>
 
-      <main className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-6 py-4">
+      <main className="overflow-hidden rounded-[30px] border border-stone-300/70 bg-[rgba(255,253,250,0.92)] shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+        <div className="border-b border-stone-200 px-6 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-slate-700">简历优化预览</p>
               <p className="mt-1 text-sm text-slate-500">可直接查看优化建议，也可以切换官方模板后继续进入制作页。</p>
             </div>
-            <button type="button" onClick={handleContinueInBuilder} disabled={!templateResumeData} className={cn("rounded-lg border px-4 py-2 text-sm font-semibold transition", templateResumeData ? "border-[#ec5b13] text-[#ec5b13] hover:bg-orange-50" : "cursor-not-allowed border-slate-200 text-slate-400")}>
+            <button type="button" onClick={handleContinueInBuilder} disabled={!templateResumeData} className={cn("rounded-full border px-4 py-2 text-sm font-semibold transition", templateResumeData ? "border-[#b85c2c] text-[#b85c2c] hover:bg-[#f7efe6]" : "cursor-not-allowed border-stone-200 text-slate-400")}>
               继续去制作页
             </button>
           </div>
@@ -374,25 +374,25 @@ export default function ResumeOptimizerWorkspace() {
 
         <div className="space-y-8 p-6">
           {!result || !previewData ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center">
+            <div className="rounded-[24px] border border-dashed border-stone-200 bg-[#f8f4ed] px-6 py-16 text-center">
               <p className="text-base font-semibold text-slate-700">暂无优化结果</p>
               <p className="mt-2 text-sm text-slate-500">上传简历并填写 JD 后，系统会生成匹配度、优化建议和可继续编辑的模板内容。</p>
             </div>
           ) : (
             <>
-              <section className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
+              <section className="rounded-[24px] border border-stone-200 bg-[#f8f4ed] px-5 py-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-slate-900">{matchScoreTitle(score)}</p>
                     <p className="mt-2 text-sm text-slate-500">{matchScoreDescription(score)}</p>
                   </div>
-                  <div className="rounded-full bg-[#ec5b13] px-4 py-2 text-lg font-bold text-white">{score}%</div>
+                  <div className="rounded-full bg-[#b85c2c] px-4 py-2 text-lg font-bold text-white">{score}%</div>
                 </div>
               </section>
 
               <section>
                 <h2 className="mb-3 text-sm font-semibold text-slate-900">AI 优化摘要</h2>
-                <ul className="space-y-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-5 py-4 text-sm text-emerald-900">
+                <ul className="space-y-2 rounded-[24px] border border-emerald-200 bg-emerald-50/80 px-5 py-4 text-sm text-emerald-900">
                   {result.optimizations.slice(0, 4).map((item) => (
                     <li key={item}>• {item}</li>
                   ))}
@@ -401,14 +401,14 @@ export default function ResumeOptimizerWorkspace() {
 
               <section>
                 <h2 className="mb-3 text-sm font-semibold text-slate-900">职业摘要</h2>
-                <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm leading-7 text-slate-700">{previewData.professionalSummary}</div>
+                <div className="rounded-[24px] border border-stone-200 bg-white px-5 py-4 text-sm leading-7 text-slate-700">{previewData.professionalSummary}</div>
               </section>
 
               <section>
                 <h2 className="mb-3 text-sm font-semibold text-slate-900">优化后的经历表达</h2>
                 <div className="space-y-4">
                   {previewData.workExperience.map((job) => (
-                    <article key={`${job.company}-${job.role}`} className="rounded-2xl border border-slate-200 px-5 py-4">
+                    <article key={`${job.company}-${job.role}`} className="rounded-[24px] border border-stone-200 bg-white/80 px-5 py-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <h3 className="text-sm font-semibold text-slate-900">{job.role}</h3>
@@ -429,7 +429,7 @@ export default function ResumeOptimizerWorkspace() {
                 <h2 className="mb-3 text-sm font-semibold text-slate-900">技能关键词</h2>
                 <div className="flex flex-wrap gap-2">
                   {previewData.skills.map((skill) => (
-                    <span key={skill} className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-medium text-[#ec5b13]">{skill}</span>
+                    <span key={skill} className="rounded-full border border-[#ead7c8] bg-[#f7efe6] px-3 py-1 text-xs font-medium text-[#b85c2c]">{skill}</span>
                   ))}
                 </div>
               </section>
@@ -437,9 +437,9 @@ export default function ResumeOptimizerWorkspace() {
               <section>
                 <h2 className="mb-3 text-sm font-semibold text-slate-900">官方模板预览</h2>
                 <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                  <button type="button" onClick={() => setSelectedProvidedTemplateId("none")} className={cn("rounded-xl border px-3 py-3 text-left transition", selectedProvidedTemplateId === "none" ? "border-[#ec5b13] bg-orange-50 text-[#ec5b13]" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300")}>不使用模板</button>
+                  <button type="button" onClick={() => setSelectedProvidedTemplateId("none")} className={cn("rounded-[22px] border px-3 py-3 text-left transition", selectedProvidedTemplateId === "none" ? "border-[#b85c2c] bg-[#f7efe6] text-[#b85c2c]" : "border-stone-200 bg-white text-slate-700 hover:border-stone-300")}>不使用模板</button>
                   {providedTemplates.map((template) => (
-                    <button key={template.id} type="button" onClick={() => setSelectedProvidedTemplateId(template.id)} className={cn("rounded-xl border px-3 py-3 text-left transition", selectedProvidedTemplateId === template.id ? "border-[#ec5b13] bg-orange-50 text-[#ec5b13]" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300")}>
+                    <button key={template.id} type="button" onClick={() => setSelectedProvidedTemplateId(template.id)} className={cn("rounded-[22px] border px-3 py-3 text-left transition", selectedProvidedTemplateId === template.id ? "border-[#b85c2c] bg-[#f7efe6] text-[#b85c2c]" : "border-stone-200 bg-white text-slate-700 hover:border-stone-300")}>
                       <p className="text-sm font-semibold">{template.label}</p>
                       <p className="mt-1 text-xs text-slate-500">{template.description}</p>
                     </button>
@@ -447,7 +447,7 @@ export default function ResumeOptimizerWorkspace() {
                 </div>
 
                 {templateNode ? (
-                  <div className="mt-4 overflow-auto rounded-2xl border border-slate-200 bg-slate-100 p-3">
+                  <div className="mt-4 overflow-auto rounded-[24px] border border-stone-200 bg-[#f3efe8] p-3">
                     <div className="mx-auto w-[794px] origin-top scale-[0.42] sm:scale-[0.52] md:scale-[0.6]">
                       <div className="h-[1123px] w-[794px] overflow-hidden rounded-[6px] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)]">{templateNode}</div>
                     </div>
@@ -461,3 +461,5 @@ export default function ResumeOptimizerWorkspace() {
     </div>
   );
 }
+
+

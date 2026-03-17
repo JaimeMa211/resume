@@ -1,4 +1,5 @@
-﻿import type { ResumeData } from "@/components/templates/types";
+import { ResumePhoto } from "@/components/templates/ResumePhoto";
+import type { ResumeData } from "@/components/templates/types";
 import { buildResumeContactItems, buildResumeTemplateSections, type ResumeTemplateSection } from "@/lib/resume-view-model";
 
 type ModernTechTemplateProps = {
@@ -65,7 +66,7 @@ export function ModernTechTemplate({ data }: ModernTechTemplateProps) {
           </div>
         </div>
 
-        <div className="h-[150px] w-[120px] shrink-0 overflow-hidden bg-[#1F80C4]" />
+        <ResumePhoto photo={data.personal_info.photo} name={data.personal_info.name} className="h-[150px] w-[120px] shrink-0 rounded-[2px] bg-[#1F80C4]" placeholderClassName="bg-[#1F80C4] text-white/90" />
       </header>
 
       <div className="space-y-3">

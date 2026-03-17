@@ -147,6 +147,7 @@ function normalizePersonalInfo(value: unknown): PersonalInfo {
     phone: safeText(source.phone),
     location: safeText(source.location),
     website: safeText(source.website),
+    photo: safeText(source.photo),
     linkedin: safeText(source.linkedin),
     github: safeText(source.github),
   };
@@ -177,13 +178,11 @@ function createBaseResumeData(persona: ResumePersona): ResumeData {
     personal_info: {
       name: "",
       headline: "",
-      contact: "",
       email: "",
       phone: "",
       location: "",
       website: "",
-      linkedin: "",
-      github: "",
+      photo: "",
     },
     professional_summary: "",
     skills: [],
@@ -209,11 +208,10 @@ export function createStarterResumeData(persona: ResumePersona = "graduate"): Re
       personal_info: {
         name: "陈晓",
         headline: "数据分析实习生",
-        contact: "138-0000-0000 | hello@example.com | 上海",
         email: "hello@example.com",
         phone: "138-0000-0000",
         location: "上海",
-        github: "github.com/chenxiao",
+        website: "github.com/chenxiao",
       },
       professional_summary: "统计学专业在校生，熟悉 Excel、SQL 与 Python 数据处理，参与过校园调研项目和互联网实习，执行细致，能快速理解业务需求并完成交付。",
       skills: ["Excel", "SQL", "Python", "Power BI", "数据清洗", "问卷分析"],
@@ -274,12 +272,10 @@ export function createStarterResumeData(persona: ResumePersona = "graduate"): Re
       personal_info: {
         name: "林舟",
         headline: "高级前端工程师",
-        contact: "138-0000-0000 | hello@example.com | 杭州",
         email: "hello@example.com",
         phone: "138-0000-0000",
         location: "杭州",
         website: "https://portfolio.example.com",
-        github: "github.com/linzhou",
       },
       professional_summary: "5 年互联网前端经验，长期负责核心业务平台建设与性能优化，擅长将复杂流程产品化，推动跨团队协作落地，持续用效率和稳定性指标证明价值。",
       skills: ["TypeScript", "React", "Next.js", "Node.js", "性能优化", "监控治理", "B 端系统设计"],
@@ -332,11 +328,10 @@ export function createStarterResumeData(persona: ResumePersona = "graduate"): Re
     personal_info: {
       name: "赵宁",
       headline: "产品运营应届生",
-      contact: "138-0000-0000 | hello@example.com | 北京",
       email: "hello@example.com",
       phone: "138-0000-0000",
       location: "北京",
-      linkedin: "linkedin.com/in/zhaoning",
+      website: "linkedin.com/in/zhaoning",
     },
     professional_summary: "新闻传播专业应届生，拥有内容运营和活动策划实习经历，熟悉数据复盘、用户洞察和跨部门协作，执行力强，能快速进入业务节奏。",
     skills: ["内容运营", "活动策划", "Excel", "SQL", "AIGC 工具", "用户调研"],
@@ -414,22 +409,14 @@ export function normalizeResumeData(value: unknown): ResumeData {
 }
 
 export function buildPersonalContactLine(personalInfo: PersonalInfo): string {
-  if (safeText(personalInfo.contact)) {
-    return safeText(personalInfo.contact);
+  const primaryLink = [personalInfo.website, personalInfo.github, personalInfo.linkedin].map((item) => safeText(item)).find(Boolean);
+  const parts = [personalInfo.phone, personalInfo.email, personalInfo.location, primaryLink].map((item) => safeText(item)).filter(Boolean);
+
+  if (parts.length > 0) {
+    return parts.join(" | ");
   }
 
-  const parts = [
-    personalInfo.phone,
-    personalInfo.email,
-    personalInfo.location,
-    personalInfo.website,
-    personalInfo.linkedin,
-    personalInfo.github,
-  ]
-    .map((item) => safeText(item))
-    .filter(Boolean);
-
-  return parts.join(" | ");
+  return safeText(personalInfo.contact);
 }
 
 export function buildSkillHighlights(data: ResumeData): string[] {

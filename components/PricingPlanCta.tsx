@@ -53,8 +53,8 @@ export default function PricingPlanCta({
     <Link
       href={href}
       className={cn(
-        "inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-bold transition",
-        highlighted ? "bg-[#ec5b13] text-white hover:bg-[#d6500f]" : "bg-slate-900 text-white hover:bg-slate-700",
+        "inline-flex items-center justify-center rounded-full px-4 py-3 text-sm font-semibold transition",
+        highlighted ? "bg-[#b85c2c] text-white hover:bg-[#9f4d24]" : "bg-slate-900 text-white hover:bg-[#b85c2c]",
         className,
       )}
     >

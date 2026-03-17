@@ -1,4 +1,5 @@
-﻿import type { ResumeData } from "@/components/templates/types";
+import { ResumePhoto } from "@/components/templates/ResumePhoto";
+import type { ResumeData } from "@/components/templates/types";
 import { buildResumeContactItems, buildResumeTemplateSections, type ResumeTemplateSection } from "@/lib/resume-view-model";
 
 type MinimalistTemplateProps = {
@@ -99,7 +100,7 @@ export function MinimalistTemplate({ data }: MinimalistTemplateProps) {
               {data.education[0]?.school ?? "待补充"}
             </p>
           </div>
-          <div className="h-[90px] w-[90px] border border-[#C8D3DA] bg-[#E9EEF1]" />
+          <ResumePhoto photo={data.personal_info.photo} name={data.personal_info.name} className="h-[90px] w-[90px] border border-[#C8D3DA] bg-[#E9EEF1]" placeholderClassName="bg-[#E9EEF1] text-[#7A8993]" />
         </div>
       </section>
 

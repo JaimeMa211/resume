@@ -1,4 +1,5 @@
-﻿import type { ResumeData } from "@/components/templates/types";
+import { ResumePhoto } from "@/components/templates/ResumePhoto";
+import type { ResumeData } from "@/components/templates/types";
 import { buildResumeContactItems, buildResumeTemplateSections, type ResumeTemplateSection } from "@/lib/resume-view-model";
 
 type HarvardTemplateProps = {
@@ -58,7 +59,7 @@ export function HarvardTemplate({ data }: HarvardTemplateProps) {
   return (
     <article className="h-full bg-[#FBFBFB] px-8 py-6 text-[10px] leading-[1.6] text-[#2E2E2E]">
       <header className="mb-4 flex items-start gap-4 border-b border-[#9AA8B3] pb-3">
-        <div className="h-24 w-20 shrink-0 overflow-hidden border border-[#C7D0D6] bg-[#E7ECEF]" />
+        <ResumePhoto photo={data.personal_info.photo} name={data.personal_info.name} className="h-24 w-20 shrink-0 border border-[#C7D0D6] bg-[#E7ECEF]" placeholderClassName="text-[#7A8993]" />
 
         <div className="min-w-0 flex-1">
           <h1 className="text-[40px] font-black tracking-tight text-[#30343A]">{data.personal_info.name || "候选人"}</h1>

@@ -72,9 +72,9 @@ export default function HeaderAuthActions({ className, loginClassName, registerC
         <div className="group relative">
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-[rgba(255,253,250,0.88)] px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-stone-300 hover:bg-white"
           >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#ec5b13]/15 text-xs font-bold text-[#ec5b13]">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#f7efe6] text-xs font-bold text-[#b85c2c]">
               {session.name.slice(0, 1).toUpperCase()}
             </span>
             <span className="max-w-20 truncate">{session.name}</span>
@@ -87,20 +87,20 @@ export default function HeaderAuthActions({ className, loginClassName, registerC
             </svg>
           </button>
 
-          <div className="invisible absolute right-0 top-full z-50 mt-2 w-72 origin-top-right rounded-2xl border border-slate-200 bg-white p-3 opacity-0 shadow-xl transition-all duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
-            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+          <div className="invisible absolute right-0 top-full z-50 mt-2 w-72 origin-top-right rounded-[24px] border border-stone-200 bg-[rgba(255,253,250,0.96)] p-3 opacity-0 shadow-[0_18px_40px_rgba(15,23,42,0.1)] transition-all duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+            <div className="rounded-[20px] border border-stone-100 bg-[#f7f1e8] px-3 py-3">
               <p className="text-sm font-bold text-slate-900">{session.name}</p>
               <p className="mt-1 text-xs text-slate-500">{session.phone}</p>
               <p className="mt-1 text-xs text-slate-500">最近登录：{formatLoginTime(session.loginAt)}</p>
             </div>
 
-            <div className="mt-3 border-l-2 border-slate-100 pl-3">
+            <div className="mt-3 border-l-2 border-stone-100 pl-3">
               <div className="space-y-2">
-                <div className="rounded-lg bg-slate-50 px-3 py-2">
+                <div className="rounded-[18px] bg-[#f8f4ed] px-3 py-2">
                   <p className="text-xs text-slate-500">当前套餐</p>
                   <p className="text-sm font-semibold text-slate-800">{planName}</p>
                 </div>
-                <div className="rounded-lg bg-slate-50 px-3 py-2">
+                <div className="rounded-[18px] bg-[#f8f4ed] px-3 py-2">
                   <p className="text-xs text-slate-500">套餐额度</p>
                   <p className="text-sm font-semibold text-slate-800">{quotaText}</p>
                 </div>
@@ -112,7 +112,7 @@ export default function HeaderAuthActions({ className, loginClassName, registerC
               onClick={handleLogout}
               disabled={isLoggingOut}
               className={cn(
-                "mt-3 inline-flex w-full items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70",
+                "mt-3 inline-flex w-full items-center justify-center rounded-full border border-stone-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-[#f8f4ed] disabled:cursor-not-allowed disabled:opacity-70",
                 logoutClassName,
               )}
             >
@@ -126,13 +126,13 @@ export default function HeaderAuthActions({ className, loginClassName, registerC
 
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <Link href="/login" className={cn("text-sm font-semibold text-slate-600 hover:text-slate-900", loginClassName)}>
+      <Link href="/login" className={cn("text-sm font-semibold text-slate-600 transition hover:text-[#b85c2c]", loginClassName)}>
         登录
       </Link>
       <Link
         href="/register"
         className={cn(
-          "rounded-lg bg-[#ec5b13] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#d6500f]",
+          "rounded-full bg-slate-900 px-4 py-2 text-sm font-bold text-white transition hover:bg-[#b85c2c]",
           registerClassName,
         )}
       >

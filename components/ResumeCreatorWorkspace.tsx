@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   BriefcaseBusiness,
   Download,
@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { ResumeBuilder, type ResumeBuilderHandle } from "@/components/ResumeBuilder";
+import { ResumePhoto } from "@/components/templates/ResumePhoto";
 import type {
   Award,
   CampusExperience,
@@ -71,6 +72,65 @@ const inputClassName =
   "w-full rounded-2xl border border-stone-300/80 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#d97745] focus:ring-4 focus:ring-[#f3d5c2]/60";
 
 const personaOrder: ResumePersona[] = ["intern", "graduate", "experienced"];
+const MAX_RESUME_PHOTO_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_RESUME_PHOTO_EDGE = 720;
+const RESUME_PHOTO_OUTPUT_QUALITY = 0.82;
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+    reader.onerror = () => reject(new Error("图片读取失败，请重试"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageElement(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new window.Image();
+
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("图片处理失败，请更换文件后重试"));
+    image.src = src;
+  });
+}
+
+async function optimizeResumePhoto(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("请上传 JPG、PNG 或 WebP 图片");
+  }
+
+  if (file.size > MAX_RESUME_PHOTO_FILE_SIZE) {
+    throw new Error("图片请控制在 5MB 以内");
+  }
+
+  const source = await readFileAsDataUrl(file);
+  if (!source) {
+    throw new Error("图片读取失败，请重试");
+  }
+
+  const image = await loadImageElement(source);
+  const longestEdge = Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height);
+  const scale = longestEdge > MAX_RESUME_PHOTO_EDGE ? MAX_RESUME_PHOTO_EDGE / longestEdge : 1;
+  const width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+  const height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+  const canvas = document.createElement("canvas");
+
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("浏览器暂不支持图片处理，请更换浏览器后重试");
+  }
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  return canvas.toDataURL("image/jpeg", RESUME_PHOTO_OUTPUT_QUALITY);
+}
 
 function createRoleExperienceItem(): WorkExperience {
   return {
@@ -1277,3 +1337,5 @@ export default function ResumeCreatorWorkspace() {
     </div>
   );
 }
+
+
