@@ -308,8 +308,8 @@ export default function ResumeOptimizerWorkspace() {
   const score = clampScore(result?.match_score ?? 0);
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl gap-6 px-6 pb-14 text-slate-900 lg:grid-cols-[360px_minmax(0,1fr)]">
-      <aside className="space-y-6 rounded-[30px] border border-stone-300/70 bg-[rgba(255,253,250,0.9)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+    <div className="mx-auto grid w-full max-w-7xl items-stretch gap-6 px-6 pb-14 text-slate-900 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <aside className="flex h-full flex-col gap-6 rounded-[30px] border border-stone-300/70 bg-[rgba(255,253,250,0.9)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
         <div>
           <h1 className="text-xl font-bold tracking-tight">AI 简历优化器</h1>
           <p className="mt-2 text-sm text-slate-500">上传 PDF 简历或直接粘贴文本，再输入 JD，系统会生成更适合岗位的表达版本。</p>
@@ -342,24 +342,30 @@ export default function ResumeOptimizerWorkspace() {
           {isParsingPdf ? <p className="mt-2 text-xs text-slate-500">正在解析 PDF...</p> : null}
         </section>
 
+        <div aria-hidden="true" className="flex items-center gap-3 text-[12px] text-[#999]">
+          <div className="h-px flex-1 bg-stone-200" />
+          <span className="shrink-0 font-medium tracking-[0.18em]">或 (OR)</span>
+          <div className="h-px flex-1 bg-stone-200" />
+        </div>
+
         <section>
           <label className="mb-3 block text-sm font-semibold text-slate-700" htmlFor="resume-text">简历文本</label>
-          <textarea id="resume-text" rows={10} value={resumeText} onChange={(event) => setResumeText(event.target.value)} className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#b85c2c]" placeholder="如果不上传 PDF，也可以直接粘贴简历文本。" />
+          <textarea id="resume-text" rows={6} value={resumeText} onChange={(event) => setResumeText(event.target.value)} className="min-h-[120px] w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#b85c2c]" placeholder="如果不上传 PDF，也可以直接粘贴简历文本。" />
         </section>
 
         <section>
           <label className="mb-3 block text-sm font-semibold text-slate-700" htmlFor="jd-input">职位描述 JD</label>
-          <textarea id="jd-input" rows={12} value={jdText} onChange={(event) => setJdText(event.target.value)} className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#b85c2c]" placeholder="粘贴目标岗位 JD。" />
+          <textarea id="jd-input" rows={6} value={jdText} onChange={(event) => setJdText(event.target.value)} className="min-h-[120px] w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#b85c2c]" placeholder="粘贴目标岗位 JD。" />
         </section>
 
         {error ? <div className="rounded-[20px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
-        <button type="button" onClick={handleOptimize} disabled={!canSubmit} className={cn("w-full rounded-full px-4 py-3 font-semibold text-white transition", canSubmit ? "bg-[#b85c2c] hover:bg-[#9f4d24]" : "cursor-not-allowed bg-slate-300")}>
+        <button type="button" onClick={handleOptimize} disabled={!canSubmit} className={cn("mt-auto w-full rounded-full px-4 py-3 font-semibold text-white transition", canSubmit ? "bg-[#111827] shadow-[0_14px_30px_rgba(17,24,39,0.18)] hover:opacity-90" : "cursor-not-allowed bg-slate-300")}>
           {isSubmitting ? "正在优化中..." : "优化简历"}
         </button>
       </aside>
 
-      <main className="overflow-hidden rounded-[30px] border border-stone-300/70 bg-[rgba(255,253,250,0.92)] shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+      <main className="flex min-h-[720px] flex-col overflow-hidden rounded-[30px] border border-stone-300/70 bg-[#FAFAFB] shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
         <div className="border-b border-stone-200 px-6 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -372,14 +378,16 @@ export default function ResumeOptimizerWorkspace() {
           </div>
         </div>
 
-        <div className="space-y-8 p-6">
+        <div className="flex h-full flex-1 flex-col p-6">
           {!result || !previewData ? (
-            <div className="rounded-[24px] border border-dashed border-stone-200 bg-[#f8f4ed] px-6 py-16 text-center">
+            <div className="flex h-full flex-1 flex-col">
+              <div className="flex flex-1 flex-col items-center justify-center rounded-[24px] border border-dashed border-stone-200 bg-[#f8f4ed] px-6 py-16 text-center">
               <p className="text-base font-semibold text-slate-700">暂无优化结果</p>
-              <p className="mt-2 text-sm text-slate-500">上传简历并填写 JD 后，系统会生成匹配度、优化建议和可继续编辑的模板内容。</p>
+              <p className="mt-2 max-w-md text-sm leading-7 text-slate-500">上传简历并填写 JD 后，系统会生成匹配度、优化建议和可继续编辑的模板内容。</p>
+              </div>
             </div>
           ) : (
-            <>
+            <div className="space-y-8">
               <section className="rounded-[24px] border border-stone-200 bg-[#f8f4ed] px-5 py-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
@@ -454,7 +462,7 @@ export default function ResumeOptimizerWorkspace() {
                   </div>
                 ) : null}
               </section>
-            </>
+            </div>
           )}
         </div>
       </main>

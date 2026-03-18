@@ -1,6 +1,6 @@
-import { ResumePhoto } from "@/components/templates/ResumePhoto";
+import { PersonalInfoHeader } from "@/components/templates/PersonalInfoHeader";
 import type { ResumeData } from "@/components/templates/types";
-import { buildResumeContactItems, buildResumeTemplateSections, type ResumeTemplateSection } from "@/lib/resume-view-model";
+import { buildResumeTemplateSections, type ResumeTemplateSection } from "@/lib/resume-view-model";
 
 type ModernTechTemplateProps = {
   data: ResumeData;
@@ -52,21 +52,23 @@ function renderSection(section: ResumeTemplateSection) {
 }
 
 export function ModernTechTemplate({ data }: ModernTechTemplateProps) {
-  const contactItems = buildResumeContactItems(data);
   const sections = buildResumeTemplateSections(data);
 
   return (
     <article className="h-full bg-white px-8 py-7 text-[10px] leading-[1.55] text-[#1F2933]">
-      <header className="mb-4 flex items-start justify-between border-t border-[#222] pt-2">
-        <div className="min-w-0 pr-4">
-          <h1 className="text-[44px] font-black tracking-tight">{data.personal_info.name || "候选人"}</h1>
-          {data.personal_info.headline ? <p className="mt-1 text-[12px] font-semibold text-[#2B8CD6]">{data.personal_info.headline}</p> : null}
-          <div className="mt-1 space-y-0.5 text-[10px] text-[#3B4A56]">
-            {contactItems.length > 0 ? contactItems.map((item) => <p key={item}>{item}</p>) : <p>联系方式待补充</p>}
-          </div>
-        </div>
-
-        <ResumePhoto photo={data.personal_info.photo} name={data.personal_info.name} className="h-[150px] w-[120px] shrink-0 rounded-[2px] bg-[#1F80C4]" placeholderClassName="bg-[#1F80C4] text-white/90" />
+      <header className="mb-4 border-t border-[#222] pt-3">
+        <PersonalInfoHeader
+          data={data}
+          className="grid-cols-[96px_minmax(160px,210px)_minmax(0,1fr)] gap-5"
+          nameClassName="text-[34px] font-black text-[#1F2933]"
+          headlineClassName="mt-1.5 text-[12px] font-semibold text-[#2B8CD6]"
+          photoClassName="h-[110px] w-[86px] rounded-[4px] border-0 bg-[#1F80C4]"
+          photoPlaceholderClassName="bg-[#1F80C4] text-white/90"
+          infoGridClassName="gap-x-5 gap-y-2.5"
+          itemIconClassName="text-[#2B8CD6]"
+          itemTextClassName="text-[10px] text-[#3B4A56]"
+          emptyClassName="text-[10px] text-[#3B4A56]"
+        />
       </header>
 
       <div className="space-y-3">

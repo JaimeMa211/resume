@@ -411,15 +411,23 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
         )}
       >
         <div className="flex min-h-full min-w-full items-start justify-center p-4">
-          <div className="mx-auto w-full" style={{ height: `${A4_HEIGHT_PX * effectivePreviewScale}px`, width: `${A4_WIDTH_PX * effectivePreviewScale}px`, maxWidth: `${A4_WIDTH_PX * effectivePreviewScale}px` }}>
+          <div
+            className="mx-auto shrink-0"
+            style={{
+              width: `${A4_WIDTH_PX * effectivePreviewScale}px`,
+              height: `${A4_HEIGHT_PX * effectivePreviewScale}px`,
+              minWidth: `${A4_WIDTH_PX * effectivePreviewScale}px`,
+              minHeight: `${A4_HEIGHT_PX * effectivePreviewScale}px`,
+            }}
+          >
             <div
               className="resume-print-paper origin-top-left overflow-hidden rounded-[22px] border border-stone-300 bg-white shadow-[0_28px_60px_rgba(15,23,42,0.14)] transition-transform duration-200 print:rounded-none print:border-0 print:shadow-none"
-              style={{ transform: `scale(${effectivePreviewScale})` }}
+              style={{ width: `${A4_WIDTH_PX}px`, height: `${A4_HEIGHT_PX}px`, transform: `scale(${effectivePreviewScale})` }}
             >
               <div
                 ref={resumeContentRef}
                 className="resume-print-content h-full w-full"
-                style={{ "--resume-print-scale": `${printScale}` } as CSSProperties}
+                style={{ width: `${A4_WIDTH_PX}px`, height: `${A4_HEIGHT_PX}px`, "--resume-print-scale": `${printScale}` } as CSSProperties}
               >
                 {templateNode}
               </div>

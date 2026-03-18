@@ -69,7 +69,7 @@ type SectionMeta = {
 };
 
 const inputClassName =
-  "w-full rounded-2xl border border-stone-300/80 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#d97745] focus:ring-4 focus:ring-[#f3d5c2]/60";
+  "box-border h-11 w-full rounded-2xl border border-stone-300/80 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#d97745] focus:ring-4 focus:ring-[#f3d5c2]/60";
 
 const personaOrder: ResumePersona[] = ["intern", "graduate", "experienced"];
 const MAX_RESUME_PHOTO_FILE_SIZE = 5 * 1024 * 1024;
@@ -391,6 +391,10 @@ export default function ResumeCreatorWorkspace() {
   const [notes, setNotes] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
 
   useEffect(() => {
     try {
@@ -436,6 +440,66 @@ export default function ResumeCreatorWorkspace() {
         [field]: value,
       },
     }));
+  }
+
+  function updatePrimaryLink(value: string) {
+    setDraft((current) => ({
+      ...current,
+      personal_info: {
+        ...current.personal_info,
+        website: value,
+        github: "",
+        linkedin: "",
+      },
+    }));
+  }
+
+  async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    setPhotoError(null);
+
+    try {
+      const photo = await optimizeResumePhoto(file);
+      setDraft((current) => ({
+        ...current,
+        personal_info: {
+          ...current.personal_info,
+          photo,
+        },
+      }));
+      setSaveMessage("个人照片已更新");
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : "图片上传失败，请重试");
+    } finally {
+      if (photoInputRef.current) {
+        photoInputRef.current.value = "";
+      }
+      setIsUploadingPhoto(false);
+    }
+  }
+
+  function openPhotoPicker() {
+    photoInputRef.current?.click();
+  }
+
+  function removePhoto() {
+    setDraft((current) => ({
+      ...current,
+      personal_info: {
+        ...current.personal_info,
+        photo: "",
+      },
+    }));
+    setPhotoError(null);
+    if (photoInputRef.current) {
+      photoInputRef.current.value = "";
+    }
+    setSaveMessage("个人照片已移除");
   }
 
   function updateInternship(index: number, field: RoleExperienceTextField, value: string) {
@@ -672,43 +736,65 @@ export default function ResumeCreatorWorkspace() {
   const activeMeta = sections.find((section) => section.id === activeSection) ?? sections[0];
 
   function renderProfileSection() {
-    return (
-      <SectionPanel eyebrow="Profile" title="把抬头信息写得清楚" description="个人信息不需要复杂，但必须让招聘方在几秒内知道你是谁、想投什么岗位，以及如何联系你。">
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="姓名">
-            <input value={draft.personal_info.name} onChange={(event) => updatePersonalInfo("name", event.target.value)} className={inputClassName} placeholder="例如：张三" />
-          </Field>
-          <Field label="求职标题">
-            <input value={draft.personal_info.headline ?? ""} onChange={(event) => updatePersonalInfo("headline", event.target.value)} className={inputClassName} placeholder="例如：新媒体运营 / 高级前端工程师" />
-          </Field>
-          <Field label="手机号">
-            <input value={draft.personal_info.phone ?? ""} onChange={(event) => updatePersonalInfo("phone", event.target.value)} className={inputClassName} placeholder="138-0000-0000" />
-          </Field>
-          <Field label="邮箱">
-            <input value={draft.personal_info.email ?? ""} onChange={(event) => updatePersonalInfo("email", event.target.value)} className={inputClassName} placeholder="hello@example.com" />
-          </Field>
-          <Field label="所在地">
-            <input value={draft.personal_info.location ?? ""} onChange={(event) => updatePersonalInfo("location", event.target.value)} className={inputClassName} placeholder="上海 / 北京 / 深圳" />
-          </Field>
-          <Field label="个人网站">
-            <input value={draft.personal_info.website ?? ""} onChange={(event) => updatePersonalInfo("website", event.target.value)} className={inputClassName} placeholder="https://your-site.com" />
-          </Field>
-          <Field label="LinkedIn">
-            <input value={draft.personal_info.linkedin ?? ""} onChange={(event) => updatePersonalInfo("linkedin", event.target.value)} className={inputClassName} placeholder="linkedin.com/in/your-name" />
-          </Field>
-          <Field label="GitHub">
-            <input value={draft.personal_info.github ?? ""} onChange={(event) => updatePersonalInfo("github", event.target.value)} className={inputClassName} placeholder="github.com/your-name" />
-          </Field>
-        </div>
+    const primaryLink = draft.personal_info.website || draft.personal_info.github || draft.personal_info.linkedin || "";
 
-        <Field label="自定义联系串" hint="填写后会优先显示在简历头部">
-          <input
-            value={draft.personal_info.contact ?? ""}
-            onChange={(event) => updatePersonalInfo("contact", event.target.value)}
-            className={inputClassName}
-            placeholder="例如：138-0000-0000 | hello@example.com | 上海"
-          />
-        </Field>
+    return (
+      <SectionPanel eyebrow="Profile" title={"\u628a\u62ac\u5934\u4fe1\u606f\u5199\u5f97\u6e05\u695a"} description={"\u4e2a\u4eba\u4fe1\u606f\u4e0d\u9700\u8981\u590d\u6742\uff0c\u4f46\u5fc5\u987b\u8ba9\u62db\u8058\u65b9\u5728\u51e0\u79d2\u5185\u77e5\u9053\u4f60\u662f\u8c01\u3001\u60f3\u6295\u4ec0\u4e48\u5c97\u4f4d\uff0c\u4ee5\u53ca\u5982\u4f55\u8054\u7cfb\u4f60\u3002"}>
+        <div className="flex items-start justify-between">
+          <div className="mr-8 min-w-0 flex-1">
+            <div className="grid w-full grid-cols-2 gap-x-4 gap-y-5">
+              <Field label={"\u59d3\u540d"}>
+                <input value={draft.personal_info.name} onChange={(event) => updatePersonalInfo("name", event.target.value)} className={inputClassName} placeholder={"\u4f8b\u5982\uff1a\u5f20\u4e09"} />
+              </Field>
+              <Field label={"\u6c42\u804c\u6807\u9898"}>
+                <input value={draft.personal_info.headline ?? ""} onChange={(event) => updatePersonalInfo("headline", event.target.value)} className={inputClassName} placeholder={"\u4f8b\u5982\uff1a\u65b0\u5a92\u4f53\u8fd0\u8425 / \u9ad8\u7ea7\u524d\u7aef\u5de5\u7a0b\u5e08"} />
+              </Field>
+              <Field label={"\u624b\u673a\u53f7"}>
+                <input value={draft.personal_info.phone ?? ""} onChange={(event) => updatePersonalInfo("phone", event.target.value)} className={inputClassName} placeholder="138-0000-0000" />
+              </Field>
+              <Field label={"\u6240\u5728\u5730"}>
+                <input value={draft.personal_info.location ?? ""} onChange={(event) => updatePersonalInfo("location", event.target.value)} className={inputClassName} placeholder={"\u4e0a\u6d77 / \u5317\u4eac / \u6df1\u5733"} />
+              </Field>
+              <div className="col-span-2">
+                <Field label={"\u90ae\u7bb1"}>
+                  <input value={draft.personal_info.email ?? ""} onChange={(event) => updatePersonalInfo("email", event.target.value)} className={inputClassName} placeholder="hello@example.com" />
+                </Field>
+              </div>
+              <div className="col-span-2">
+                <Field label={"\u4f5c\u54c1\u96c6 / GitHub / LinkedIn"}>
+                  <input value={primaryLink} onChange={(event) => updatePrimaryLink(event.target.value)} className={inputClassName} placeholder={"https://your-site.com \u6216 github.com/your-name"} />
+                </Field>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex w-[140px] shrink-0 flex-col items-stretch gap-3 pt-0.5">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-slate-900">{"\u4e2a\u4eba\u7167\u7247"}</p>
+              <p className="text-xs leading-5 text-slate-500">{"\u7528\u4e8e\u7b80\u5386\u5934\u90e8\u5c55\u793a\uff0c\u5efa\u8bae\u4e0a\u4f20\u6e05\u6670\u8bc1\u4ef6\u7167\u3002"}</p>
+              <input ref={photoInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handlePhotoChange} />
+            </div>
+
+            <div className="flex justify-center rounded-[24px] border border-stone-200 bg-stone-50/80 p-4">
+              <ResumePhoto photo={draft.personal_info.photo} name={draft.personal_info.name} className="h-[132px] w-[106px] shrink-0 rounded-[18px] border border-stone-200 bg-white" placeholderClassName="rounded-[18px] bg-white text-slate-400" />
+            </div>
+
+            <p className="text-xs leading-5 text-slate-500">{"\u652f\u6301 JPG\u3001PNG\u3001WebP\uff0c\u7cfb\u7edf\u4f1a\u81ea\u52a8\u538b\u7f29\u5904\u7406\u3002"}</p>
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button type="button" variant="outline" className="h-9 min-w-0 flex-1 justify-center rounded-full border-stone-300 bg-white px-3 text-slate-800 hover:bg-stone-100" onClick={openPhotoPicker} disabled={isUploadingPhoto}>
+                {isUploadingPhoto ? "\u4e0a\u4f20\u4e2d..." : draft.personal_info.photo ? "\u66f4\u6362\u7167\u7247" : "\u4e0a\u4f20\u7167\u7247"}
+              </Button>
+              {draft.personal_info.photo ? (
+                <Button type="button" variant="outline" className="h-9 min-w-0 flex-1 justify-center rounded-full border-red-200 bg-white px-3 text-red-600 hover:bg-red-50" onClick={removePhoto}>
+                  {"\u5220\u9664"}
+                </Button>
+              ) : null}
+            </div>
+
+            {photoError ? <p className="text-xs text-red-600">{photoError}</p> : null}
+          </div>
+        </div>
       </SectionPanel>
     );
   }
@@ -742,7 +828,7 @@ export default function ResumeCreatorWorkspace() {
             onChange={(event) => setDraft((current) => ({ ...current, skills: parseMultilineText(event.target.value) }))}
             rows={8}
             className="min-h-36 rounded-2xl border-stone-300 bg-white px-4 py-3"
-            placeholder="React\nTypeScript\nSQL\n活动策划\n数据分析"
+            placeholder="React`nTypeScript`nSQL`n活动策划`n数据分析"
           />
         </Field>
       </SectionPanel>
@@ -975,7 +1061,7 @@ export default function ResumeCreatorWorkspace() {
     return (
       <SectionPanel eyebrow="Awards" title="荣誉奖项" description="奖项不是必填，但如果能强化你的竞争力，可以作为简历后半部分的信任补充。">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-stone-200 bg-stone-50/80 px-4 py-4">
-          <p className="text-sm text-slate-600">奖项建议只保留高含金量、与岗位相关或最近两年的内容。</p>
+          <p className="text-sm text-slate-600">奖项建议只保留含金量高、与岗位相关或最近两年的内容。</p>
           <Button
             type="button"
             variant="outline"
@@ -1025,13 +1111,13 @@ export default function ResumeCreatorWorkspace() {
 
   function renderCredentialsSection() {
     return (
-      <SectionPanel eyebrow="Credentials" title="证书与语言" description="英语、计算机和专业证书可以增强可信度，但只保留能帮助岗位判断的内容。">
-        <div className="grid gap-4 xl:grid-cols-2">
+      <SectionPanel eyebrow="Credentials" title={"技能证书"} description={"保留和岗位直接相关的技能认证、专业证书与资质说明，避免无关堆砌。"}>
+        <div className="space-y-4">
           <WorkspaceCard className="p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Certifications</p>
-                <h3 className="mt-1 text-lg font-semibold text-slate-900">证书</h3>
+                <h3 className="mt-1 text-lg font-semibold text-slate-900">{"证书"}</h3>
               </div>
               <Button
                 type="button"
@@ -1040,11 +1126,11 @@ export default function ResumeCreatorWorkspace() {
                 onClick={() => setDraft((current) => ({ ...current, certifications: [...current.certifications, createCertificationItem()] }))}
               >
                 <Plus className="h-4 w-4" />
-                添加
+                {"添加"}
               </Button>
             </div>
             <div className="mt-4 space-y-3">
-              {draft.certifications.length === 0 ? <EmptyHint text="暂无证书信息。" /> : null}
+              {draft.certifications.length === 0 ? <EmptyHint text={"暂无证书信息。"} /> : null}
               {draft.certifications.map((item, index) => (
                 <ItemCard
                   key={`cert-${index}`}
@@ -1057,9 +1143,15 @@ export default function ResumeCreatorWorkspace() {
                     }))
                   }
                 >
-                  <div className="grid gap-4">
-                    <Field label="证书名称">
-                      <input value={item.name} onChange={(event) => updateCertification(index, "name", event.target.value)} className={inputClassName} placeholder="例如：PMP / 普通话一级乙等" />
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <Field label={"证书名称"}>
+                      <input value={item.name} onChange={(event) => updateCertification(index, "name", event.target.value)} className={inputClassName} placeholder={"例如：PMP / 普通话一级乙等"} />
+                    </Field>
+                    <Field label={"颁发机构"}>
+                      <input value={item.issuer} onChange={(event) => updateCertification(index, "issuer", event.target.value)} className={inputClassName} placeholder={"例如：PMI"} />
+                    </Field>
+                    <Field label={"日期"}>
+                      <input value={item.date} onChange={(event) => updateCertification(index, "date", event.target.value)} className={inputClassName} placeholder={"例如：2025.06"} />
                     </Field>
                   </div>
                 </ItemCard>
@@ -1070,8 +1162,8 @@ export default function ResumeCreatorWorkspace() {
           <WorkspaceCard className="p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Languages</p>
-                <h3 className="mt-1 text-lg font-semibold text-slate-900">语言</h3>
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Supplementary Credentials</p>
+                <h3 className="mt-1 text-lg font-semibold text-slate-900">{"补充证书"}</h3>
               </div>
               <Button
                 type="button"
@@ -1080,15 +1172,15 @@ export default function ResumeCreatorWorkspace() {
                 onClick={() => setDraft((current) => ({ ...current, languages: [...current.languages, createLanguageItem()] }))}
               >
                 <Plus className="h-4 w-4" />
-                添加
+                {"添加"}
               </Button>
             </div>
             <div className="mt-4 space-y-3">
-              {draft.languages.length === 0 ? <EmptyHint text="暂无语言信息。" /> : null}
+              {draft.languages.length === 0 ? <EmptyHint text={"暂无补充证书信息。"} /> : null}
               {draft.languages.map((item, index) => (
                 <ItemCard
                   key={`language-${index}`}
-                  title={item.name || `语言 ${index + 1}`}
+                  title={item.name || `补充证书 ${index + 1}`}
                   index={index}
                   onDelete={() =>
                     setDraft((current) => ({
@@ -1098,11 +1190,11 @@ export default function ResumeCreatorWorkspace() {
                   }
                 >
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="语言">
-                      <input value={item.name} onChange={(event) => updateLanguage(index, "name", event.target.value)} className={inputClassName} placeholder="例如：英语" />
+                    <Field label={"证书名称"}>
+                      <input value={item.name} onChange={(event) => updateLanguage(index, "name", event.target.value)} className={inputClassName} placeholder={"例如：CET-6 / 普通话一级乙等"} />
                     </Field>
-                    <Field label="熟练度">
-                      <input value={item.proficiency} onChange={(event) => updateLanguage(index, "proficiency", event.target.value)} className={inputClassName} placeholder="例如：CET-6 / 可用于工作沟通" />
+                    <Field label={"证书说明"}>
+                      <input value={item.proficiency} onChange={(event) => updateLanguage(index, "proficiency", event.target.value)} className={inputClassName} placeholder={"例如：口语流利 / 成绩优秀 / 可用于工作沟通"} />
                     </Field>
                   </div>
                 </ItemCard>
@@ -1264,7 +1356,7 @@ export default function ResumeCreatorWorkspace() {
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[250px_minmax(0,420px)_minmax(760px,1fr)] 2xl:grid-cols-[260px_minmax(0,450px)_minmax(820px,1fr)]">
+      <div className="grid gap-5 xl:grid-cols-[240px_minmax(420px,480px)_minmax(0,1fr)] 2xl:grid-cols-[260px_minmax(440px,520px)_minmax(0,1fr)]">
         <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
           <WorkspaceCard className="p-5">
             <div className="flex items-center gap-3">
@@ -1322,20 +1414,23 @@ export default function ResumeCreatorWorkspace() {
             </div>
             <div className="space-y-3 px-5 py-4 text-sm leading-6 text-slate-600">
               <p>身份按钮只控制模块优先级和显示顺序，不会删除你已经填写的内容。</p>
-              <p>学生阶段尽量用教育、实习、项目和校园经历证明能力，社招阶段则要让工作经历和项目结果站到前面。</p>
+              <p>学生阶段尽量用教育、实习、项目和校园经历证明能力；社招阶段则要让工作经历和项目结果站到前面。</p>
               <p>右侧预览与 PDF 导出都使用同一套身份策略，切换后可以立即检查版面是否合理。</p>
             </div>
           </WorkspaceCard>
         </aside>
 
-        <main>{renderActiveSection()}</main>
+        <main className="builder-editor-follow xl:min-w-[420px]">
+          {renderActiveSection()}
+        </main>
 
-        <aside className="xl:sticky xl:top-24 xl:self-start">
+        <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">
           <ResumeBuilder ref={resumeBuilderRef} data={draft} />
         </aside>
       </div>
     </div>
   );
 }
+
 
 

@@ -1,6 +1,6 @@
-import { ResumePhoto } from "@/components/templates/ResumePhoto";
+import { PersonalInfoHeader } from "@/components/templates/PersonalInfoHeader";
 import type { ResumeData } from "@/components/templates/types";
-import { buildResumeContactItems, buildResumeTemplateSections, type ResumeTemplateSection } from "@/lib/resume-view-model";
+import { buildResumeTemplateSections, type ResumeTemplateSection } from "@/lib/resume-view-model";
 
 type MinimalistTemplateProps = {
   data: ResumeData;
@@ -53,7 +53,6 @@ function renderSection(section: ResumeTemplateSection) {
 }
 
 export function MinimalistTemplate({ data }: MinimalistTemplateProps) {
-  const contactItems = buildResumeContactItems(data, 4);
   const sections = buildResumeTemplateSections(data);
 
   return (
@@ -71,36 +70,19 @@ export function MinimalistTemplate({ data }: MinimalistTemplateProps) {
 
       <section className="mb-3">
         <SectionTag title="基本信息" />
-        <div className="grid grid-cols-[1fr_1fr_90px] gap-3 border border-[#D4DEE4] bg-[#FAFCFD] p-2">
-          <div className="space-y-0.5">
-            <p>
-              <span className="font-semibold text-[#445A67]">姓名：</span>
-              {data.personal_info.name || "待补充"}
-            </p>
-            <p>
-              <span className="font-semibold text-[#445A67]">电话：</span>
-              {data.personal_info.phone || contactItems[0] || "待补充"}
-            </p>
-            <p>
-              <span className="font-semibold text-[#445A67]">邮箱：</span>
-              {data.personal_info.email || contactItems[1] || "待补充"}
-            </p>
-          </div>
-          <div className="space-y-0.5">
-            <p>
-              <span className="font-semibold text-[#445A67]">所在地：</span>
-              {data.personal_info.location || "待补充"}
-            </p>
-            <p>
-              <span className="font-semibold text-[#445A67]">学历：</span>
-              {data.education[0]?.degree ?? "待补充"}
-            </p>
-            <p>
-              <span className="font-semibold text-[#445A67]">院校：</span>
-              {data.education[0]?.school ?? "待补充"}
-            </p>
-          </div>
-          <ResumePhoto photo={data.personal_info.photo} name={data.personal_info.name} className="h-[90px] w-[90px] border border-[#C8D3DA] bg-[#E9EEF1]" placeholderClassName="bg-[#E9EEF1] text-[#7A8993]" />
+        <div className="border border-[#D4DEE4] bg-[#FAFCFD] px-3 py-2.5">
+          <PersonalInfoHeader
+            data={data}
+            className="grid-cols-[76px_minmax(160px,200px)_minmax(0,1fr)] gap-4"
+            nameClassName="text-[28px] font-bold text-[#2F3B45]"
+            headlineClassName="mt-1 text-[13px] font-medium text-[#6C8695]"
+            photoClassName="h-[96px] w-[76px] border border-[#C8D3DA] bg-[#E9EEF1]"
+            photoPlaceholderClassName="bg-[#E9EEF1] text-[#7A8993]"
+            infoGridClassName="gap-x-4 gap-y-2"
+            itemIconClassName="text-[#4C7184]"
+            itemTextClassName="text-[11px] text-[#445A67]"
+            emptyClassName="text-[11px] text-[#6C8695]"
+          />
         </div>
       </section>
 

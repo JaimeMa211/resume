@@ -69,8 +69,8 @@ export const RESUME_MODULE_CATALOG: Record<ResumeModuleId, ResumeModuleConfig> =
   },
   credentials: {
     id: "credentials",
-    title: "证书与语言",
-    description: "英语、计算机和专业证书，以及语言能力。",
+    title: "技能证书",
+    description: "技能认证、专业证书和岗位相关资质。",
   },
 };
 

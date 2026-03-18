@@ -419,6 +419,15 @@ export function buildPersonalContactLine(personalInfo: PersonalInfo): string {
   return safeText(personalInfo.contact);
 }
 
+export function buildPersonalContactDetails(personalInfo: PersonalInfo) {
+  return {
+    phone: safeText(personalInfo.phone),
+    location: safeText(personalInfo.location),
+    email: safeText(personalInfo.email),
+    primaryLink: [personalInfo.website, personalInfo.github, personalInfo.linkedin].map((item) => safeText(item)).find(Boolean) ?? "",
+  };
+}
+
 export function buildSkillHighlights(data: ResumeData): string[] {
   const skills = data.skills.map((item) => safeText(item)).filter(Boolean);
   const certifications = buildCredentialHighlights(data);
