@@ -56,8 +56,8 @@ export function MinimalistTemplate({ data }: MinimalistTemplateProps) {
   const sections = buildResumeTemplateSections(data);
 
   return (
-    <article className="h-full bg-white px-9 py-6 text-[10px] leading-[1.55] text-[#2F3B45]">
-      <header className="mb-4">
+    <article className="h-full bg-white px-9 pt-4 pb-6 text-[10px] leading-[1.55] text-[#2F3B45] print:pt-2">
+      <header className="mb-4 print:mb-3">
         <div className="flex items-end justify-between border-b-[6px] border-[#4E768A] pb-1">
           <div>
             <p className="text-[56px] font-black tracking-tight text-[#4C7184]">个人简历</p>

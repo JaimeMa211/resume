@@ -2,10 +2,7 @@
 
 import { ChangeEvent, DragEvent, useMemo, useState } from "react";
 
-import { HarvardTemplate } from "@/components/templates/HarvardTemplate";
-import { MinimalistTemplate } from "@/components/templates/MinimalistTemplate";
-import { ModernTechTemplate } from "@/components/templates/ModernTechTemplate";
-import type { ResumeData } from "@/components/templates/types";
+import type { ResumeData, ResumePersona } from "@/components/templates/types";
 import { BUILDER_DRAFT_STORAGE_KEY, normalizeResumeData } from "@/lib/resume-data";
 import { cn } from "@/lib/utils";
 
@@ -21,18 +18,15 @@ type OptimizeResponse = {
   new_experiences: ExperienceItem[];
 };
 
+type GenerateDraftResponse = ResumeData & {
+  error?: string;
+};
+
 type PreviewExperience = {
   company: string;
   role: string;
   duration: string;
   achievements: string[];
-};
-
-type ProvidedTemplate = {
-  id: "template-1" | "template-2" | "template-3";
-  label: string;
-  filename: string;
-  description: string;
 };
 
 type ResumePreviewData = {
@@ -47,26 +41,19 @@ type ExtractedProfileData = {
   education: ResumeData["education"];
 };
 
-const providedTemplates: ProvidedTemplate[] = [
-  {
-    id: "template-1",
-    label: "模板 1",
-    filename: "简历模版（一）(1).pdf",
-    description: "经典结构化排版",
-  },
-  {
-    id: "template-2",
-    label: "模板 2",
-    filename: "简历模板（二）(1).pdf",
-    description: "现代双栏风格",
-  },
-  {
-    id: "template-3",
-    label: "模板 3",
-    filename: "ZW-00065简约风求职简历模板.pdf",
-    description: "简约单页版式",
-  },
-];
+type HighlightPart = {
+  text: string;
+  added: boolean;
+};
+
+type HighlightedAchievement = {
+  originalText: string;
+  parts: HighlightPart[];
+};
+
+type HighlightedExperience = PreviewExperience & {
+  highlightedAchievements: HighlightedAchievement[];
+};
 
 function extractProfileData(resumeText: string): ExtractedProfileData {
   const lines = resumeText
@@ -135,6 +122,118 @@ function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function tokenizeForDiff(text: string): string[] {
+  return text.match(/([A-Za-z0-9.+#/-]+|[\u4E00-\u9FFF]|[^\u4E00-\u9FFFA-Za-z0-9\s]|\s+)/g) ?? [];
+}
+
+function filterComparableTokens(tokens: string[]): string[] {
+  return tokens.filter((token) => !/^\s+$/.test(token) && !/^[^\u4E00-\u9FFFA-Za-z0-9]+$/.test(token));
+}
+
+function buildLcsMatrix(sourceTokens: string[], targetTokens: string[]): number[][] {
+  const matrix = Array.from({ length: sourceTokens.length + 1 }, () => Array(targetTokens.length + 1).fill(0));
+
+  for (let i = 1; i <= sourceTokens.length; i += 1) {
+    for (let j = 1; j <= targetTokens.length; j += 1) {
+      if (sourceTokens[i - 1] === targetTokens[j - 1]) {
+        matrix[i][j] = matrix[i - 1][j - 1] + 1;
+      } else {
+        matrix[i][j] = Math.max(matrix[i - 1][j], matrix[i][j - 1]);
+      }
+    }
+  }
+
+  return matrix;
+}
+
+function computeSimilarityScore(sourceText: string, targetText: string): number {
+  const sourceTokens = filterComparableTokens(tokenizeForDiff(sourceText));
+  const targetTokens = filterComparableTokens(tokenizeForDiff(targetText));
+
+  if (sourceTokens.length === 0 || targetTokens.length === 0) {
+    return 0;
+  }
+
+  const matrix = buildLcsMatrix(sourceTokens, targetTokens);
+  const lcsLength = matrix[sourceTokens.length][targetTokens.length];
+
+  return lcsLength / Math.max(sourceTokens.length, targetTokens.length);
+}
+
+function findBestMatchingLine(targetText: string, sourceLines: string[]): string {
+  let bestLine = "";
+  let bestScore = 0;
+
+  for (const line of sourceLines) {
+    const score = computeSimilarityScore(line, targetText);
+    if (score > bestScore) {
+      bestScore = score;
+      bestLine = line;
+    }
+  }
+
+  return bestScore >= 0.2 ? bestLine : "";
+}
+
+function buildHighlightedParts(sourceText: string, targetText: string): HighlightPart[] {
+  if (!sourceText.trim()) {
+    return [{ text: targetText, added: true }];
+  }
+
+  const sourceTokens = tokenizeForDiff(sourceText);
+  const targetTokens = tokenizeForDiff(targetText);
+  const matrix = buildLcsMatrix(sourceTokens, targetTokens);
+  const keptTargetIndexes = new Set<number>();
+
+  let i = sourceTokens.length;
+  let j = targetTokens.length;
+
+  while (i > 0 && j > 0) {
+    if (sourceTokens[i - 1] === targetTokens[j - 1]) {
+      keptTargetIndexes.add(j - 1);
+      i -= 1;
+      j -= 1;
+    } else if (matrix[i - 1][j] >= matrix[i][j - 1]) {
+      i -= 1;
+    } else {
+      j -= 1;
+    }
+  }
+
+  const parts: HighlightPart[] = [];
+  for (let index = 0; index < targetTokens.length; index += 1) {
+    const token = targetTokens[index];
+    const added = !keptTargetIndexes.has(index) && !/^\s+$/.test(token);
+    const previous = parts[parts.length - 1];
+
+    if (previous && previous.added === added) {
+      previous.text += token;
+    } else {
+      parts.push({ text: token, added });
+    }
+  }
+
+  return parts;
+}
+
+function buildHighlightedExperiences(workExperience: PreviewExperience[], resumeText: string): HighlightedExperience[] {
+  const sourceLines = resumeText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length >= 6);
+
+  return workExperience.map((job) => ({
+    ...job,
+    highlightedAchievements: job.achievements.map((achievement) => {
+      const originalText = findBestMatchingLine(achievement, sourceLines);
+      return {
+        originalText,
+        parts: buildHighlightedParts(originalText, achievement),
+      };
+    }),
+  }));
+}
+
 function buildPreviewData(result: OptimizeResponse, jdText: string): ResumePreviewData {
   const skillCandidates = [
     "JavaScript",
@@ -156,7 +255,7 @@ function buildPreviewData(result: OptimizeResponse, jdText: string): ResumePrevi
   const lowerJd = jdText.toLowerCase();
   const skills = skillCandidates.filter((skill) => lowerJd.includes(skill.toLowerCase())).slice(0, 10);
 
-  const workExperience = result.new_experiences.slice(0, 2).map((item, index) => ({
+  const workExperience = result.new_experiences.slice(0, 3).map((item, index) => ({
     company: item.company || "公司待补充",
     role: item.role || "岗位待补充",
     duration: index === 0 ? "最近经历" : "过往经历",
@@ -189,6 +288,72 @@ function matchScoreDescription(score: number): string {
   return "建议继续补充与岗位高度相关的项目经历、结果数据和关键词。";
 }
 
+function inferPersonaFromResumeText(resumeText: string, result: OptimizeResponse | null): ResumePersona {
+  const hasStudentSignals = /(在校|应届|毕业生|学生|本科|硕士|博士|大一|大二|大三|大四|研一|研二)/.test(resumeText);
+  const hasInternSignals = /实习/.test(resumeText);
+  const hasWorkSignals = /(工作经历|任职|就职|至今|负责人|公司|项目负责|主导)/.test(resumeText);
+
+  if (hasStudentSignals && hasInternSignals) {
+    return "intern";
+  }
+
+  if (hasStudentSignals) {
+    return "graduate";
+  }
+
+  if (hasWorkSignals) {
+    return "experienced";
+  }
+
+  if (result?.new_experiences.some((item) => !/实习/.test(`${item.role}${item.company}`))) {
+    return "experienced";
+  }
+
+  return hasInternSignals ? "intern" : "graduate";
+}
+
+function extractTargetRoleFromJd(jdText: string): string {
+  const lines = jdText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  for (const line of lines.slice(0, 8)) {
+    const matched = line.match(/(?:职位|岗位|招聘岗位|应聘职位|目标岗位|target role|role)\s*[:：]\s*(.+)$/i);
+    if (matched?.[1]?.trim()) {
+      return matched[1].trim();
+    }
+  }
+
+  return lines.find((line) => line.length <= 24 && !/[。；;，,]/.test(line)) ?? "";
+}
+
+function buildBuilderNotes(result: OptimizeResponse): string {
+  const sections = [
+    "请基于原始简历事实生成一份进入制作页后可直接导出 PDF 的完整简历草稿。",
+    "优先采用以下 AI 优化后的表达写入对应模块，并补齐原简历中已有的联系方式、教育、项目、证书、校园经历等结构化信息。",
+    "不要把“AI 优化摘要”“原文参考”“高亮说明”“待补充”等说明性文案直接写入最终简历；缺失信息宁可留空也不要虚构。",
+  ];
+
+  if (result.optimizations.length > 0) {
+    sections.push(`【AI 优化摘要】\n${result.optimizations.map((item, index) => `${index + 1}. ${item}`).join("\n")}`);
+  }
+
+  if (result.new_experiences.length > 0) {
+    sections.push(
+      `【优先采用的优化经历表述】\n${result.new_experiences
+        .map((item, index) => {
+          const title = [item.company, item.role].filter(Boolean).join(" | ") || `经历 ${index + 1}`;
+          const details = item.details.map((detail) => `- ${detail}`).join("\n");
+          return `${index + 1}. ${title}${details ? `\n${details}` : ""}`;
+        })
+        .join("\n\n")}`,
+    );
+  }
+
+  return sections.join("\n\n");
+}
+
 export default function ResumeOptimizerWorkspace() {
   const [resumeText, setResumeText] = useState("");
   const [jdText, setJdText] = useState("");
@@ -198,20 +363,17 @@ export default function ResumeOptimizerWorkspace() {
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OptimizeResponse | null>(null);
-  const [selectedProvidedTemplateId, setSelectedProvidedTemplateId] = useState<ProvidedTemplate["id"] | "none">("none");
+  const [isPreparingBuilder, setIsPreparingBuilder] = useState(false);
 
   const canSubmit = useMemo(() => resumeText.trim() && jdText.trim() && !isSubmitting && !isParsingPdf, [resumeText, jdText, isSubmitting, isParsingPdf]);
   const previewData = useMemo(() => (result ? buildPreviewData(result, jdText) : null), [result, jdText]);
   const extractedProfileData = useMemo(() => extractProfileData(resumeText), [resumeText]);
   const templateResumeData = useMemo(() => (previewData ? buildTemplateResumeData(previewData, extractedProfileData) : null), [previewData, extractedProfileData]);
-  const selectedProvidedTemplate = selectedProvidedTemplateId === "none" ? null : providedTemplates.find((item) => item.id === selectedProvidedTemplateId) ?? null;
-
-  const templateNode = useMemo(() => {
-    if (!templateResumeData || !selectedProvidedTemplate) return null;
-    if (selectedProvidedTemplate.id === "template-1") return <HarvardTemplate data={templateResumeData} />;
-    if (selectedProvidedTemplate.id === "template-2") return <ModernTechTemplate data={templateResumeData} />;
-    return <MinimalistTemplate data={templateResumeData} />;
-  }, [templateResumeData, selectedProvidedTemplate]);
+  const highlightedWorkExperience = useMemo(
+    () => (previewData ? buildHighlightedExperiences(previewData.workExperience, resumeText) : []),
+    [previewData, resumeText],
+  );
+  const canContinueToBuilder = !!templateResumeData && !!result && !isPreparingBuilder;
 
   async function parsePdfFile(file: File) {
     const lowerName = file.name.toLowerCase();
@@ -299,10 +461,42 @@ export default function ResumeOptimizerWorkspace() {
     }
   }
 
-  function handleContinueInBuilder() {
-    if (!templateResumeData) return;
-    window.localStorage.setItem(BUILDER_DRAFT_STORAGE_KEY, JSON.stringify(normalizeResumeData(templateResumeData)));
-    window.location.href = "/builder";
+  async function handleContinueInBuilder() {
+    if (!result || !templateResumeData) return;
+
+    setIsPreparingBuilder(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/generate-resume", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          persona: inferPersonaFromResumeText(resumeText, result),
+          sourceText: resumeText,
+          targetRole: extractTargetRoleFromJd(jdText),
+          jdText,
+          notes: buildBuilderNotes(result),
+        }),
+      });
+
+      const payload = (await response.json()) as GenerateDraftResponse;
+      if (!response.ok) {
+        throw new Error(payload.error || "制作页草稿生成失败");
+      }
+
+      window.localStorage.setItem(BUILDER_DRAFT_STORAGE_KEY, JSON.stringify(normalizeResumeData(payload)));
+      window.location.href = "/builder";
+      return;
+    } catch {
+      window.localStorage.setItem(BUILDER_DRAFT_STORAGE_KEY, JSON.stringify(normalizeResumeData({ ...templateResumeData, persona: inferPersonaFromResumeText(resumeText, result) })));
+      window.location.href = "/builder";
+      return;
+    } finally {
+      setIsPreparingBuilder(false);
+    }
   }
 
   const score = clampScore(result?.match_score ?? 0);
@@ -370,10 +564,10 @@ export default function ResumeOptimizerWorkspace() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-slate-700">简历优化预览</p>
-              <p className="mt-1 text-sm text-slate-500">可直接查看优化建议，也可以切换官方模板后继续进入制作页。</p>
+              <p className="mt-1 text-sm text-slate-500">可直接查看优化建议，并把结果继续带入制作页编辑。</p>
             </div>
-            <button type="button" onClick={handleContinueInBuilder} disabled={!templateResumeData} className={cn("rounded-full border px-4 py-2 text-sm font-semibold transition", templateResumeData ? "border-[#b85c2c] text-[#b85c2c] hover:bg-[#f7efe6]" : "cursor-not-allowed border-stone-200 text-slate-400")}>
-              继续去制作页
+            <button type="button" onClick={handleContinueInBuilder} disabled={!canContinueToBuilder} className={cn("rounded-full border px-4 py-2 text-sm font-semibold transition", canContinueToBuilder ? "border-[#b85c2c] text-[#b85c2c] hover:bg-[#f7efe6]" : "cursor-not-allowed border-stone-200 text-slate-400")}>
+              {isPreparingBuilder ? "正在准备制作页..." : "继续去制作页"}
             </button>
           </div>
         </div>
@@ -382,8 +576,8 @@ export default function ResumeOptimizerWorkspace() {
           {!result || !previewData ? (
             <div className="flex h-full flex-1 flex-col">
               <div className="flex flex-1 flex-col items-center justify-center rounded-[24px] border border-dashed border-stone-200 bg-[#f8f4ed] px-6 py-16 text-center">
-              <p className="text-base font-semibold text-slate-700">暂无优化结果</p>
-              <p className="mt-2 max-w-md text-sm leading-7 text-slate-500">上传简历并填写 JD 后，系统会生成匹配度、优化建议和可继续编辑的模板内容。</p>
+                <p className="text-base font-semibold text-slate-700">暂无优化结果</p>
+                <p className="mt-2 max-w-md text-sm leading-7 text-slate-500">上传简历并填写 JD 后，系统会生成匹配度、优化建议和可继续编辑的制作页内容。</p>
               </div>
             </div>
           ) : (
@@ -408,59 +602,48 @@ export default function ResumeOptimizerWorkspace() {
               </section>
 
               <section>
-                <h2 className="mb-3 text-sm font-semibold text-slate-900">职业摘要</h2>
-                <div className="rounded-[24px] border border-stone-200 bg-white px-5 py-4 text-sm leading-7 text-slate-700">{previewData.professionalSummary}</div>
-              </section>
-
-              <section>
-                <h2 className="mb-3 text-sm font-semibold text-slate-900">优化后的经历表达</h2>
-                <div className="space-y-4">
-                  {previewData.workExperience.map((job) => (
-                    <article key={`${job.company}-${job.role}`} className="rounded-[24px] border border-stone-200 bg-white/80 px-5 py-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-sm font-semibold text-slate-900">{job.role}</h3>
-                          <p className="mt-1 text-xs text-slate-500">{job.company} | {job.duration}</p>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-sm font-semibold text-slate-900">优化后的经历表达</h2>
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">高亮部分为 AI 新增或改写内容</span>
+                </div>
+                {highlightedWorkExperience.length > 0 ? (
+                  <div className="space-y-4">
+                    {highlightedWorkExperience.map((job) => (
+                      <article key={`${job.company}-${job.role}`} className="rounded-[24px] border border-stone-200 bg-white/80 px-5 py-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-sm font-semibold text-slate-900">{job.role}</h3>
+                            <p className="mt-1 text-xs text-slate-500">{job.company} | {job.duration}</p>
+                          </div>
                         </div>
-                      </div>
-                      <ul className="mt-3 space-y-2 text-sm text-slate-700">
-                        {job.achievements.map((achievement) => (
-                          <li key={achievement}>• {achievement}</li>
-                        ))}
-                      </ul>
-                    </article>
-                  ))}
-                </div>
-              </section>
-
-              <section>
-                <h2 className="mb-3 text-sm font-semibold text-slate-900">技能关键词</h2>
-                <div className="flex flex-wrap gap-2">
-                  {previewData.skills.map((skill) => (
-                    <span key={skill} className="rounded-full border border-[#ead7c8] bg-[#f7efe6] px-3 py-1 text-xs font-medium text-[#b85c2c]">{skill}</span>
-                  ))}
-                </div>
-              </section>
-
-              <section>
-                <h2 className="mb-3 text-sm font-semibold text-slate-900">官方模板预览</h2>
-                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                  <button type="button" onClick={() => setSelectedProvidedTemplateId("none")} className={cn("rounded-[22px] border px-3 py-3 text-left transition", selectedProvidedTemplateId === "none" ? "border-[#b85c2c] bg-[#f7efe6] text-[#b85c2c]" : "border-stone-200 bg-white text-slate-700 hover:border-stone-300")}>不使用模板</button>
-                  {providedTemplates.map((template) => (
-                    <button key={template.id} type="button" onClick={() => setSelectedProvidedTemplateId(template.id)} className={cn("rounded-[22px] border px-3 py-3 text-left transition", selectedProvidedTemplateId === template.id ? "border-[#b85c2c] bg-[#f7efe6] text-[#b85c2c]" : "border-stone-200 bg-white text-slate-700 hover:border-stone-300")}>
-                      <p className="text-sm font-semibold">{template.label}</p>
-                      <p className="mt-1 text-xs text-slate-500">{template.description}</p>
-                    </button>
-                  ))}
-                </div>
-
-                {templateNode ? (
-                  <div className="mt-4 overflow-auto rounded-[24px] border border-stone-200 bg-[#f3efe8] p-3">
-                    <div className="mx-auto w-[794px] origin-top scale-[0.42] sm:scale-[0.52] md:scale-[0.6]">
-                      <div className="h-[1123px] w-[794px] overflow-hidden rounded-[6px] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)]">{templateNode}</div>
-                    </div>
+                        <ul className="mt-3 space-y-3 text-sm text-slate-700">
+                          {job.highlightedAchievements.map((achievement, index) => (
+                            <li key={`${job.company}-${job.role}-${index}`} className="rounded-[18px] bg-[#fcfaf7] px-4 py-3 leading-7">
+                              <div>
+                                <span className="mr-2 text-slate-400">•</span>
+                                {achievement.parts.map((part, partIndex) => (
+                                  <span
+                                    key={`${job.company}-${job.role}-${index}-${partIndex}`}
+                                    className={part.added ? "rounded-md bg-[#fde7bf] px-1 py-0.5 text-slate-900" : undefined}
+                                  >
+                                    {part.text}
+                                  </span>
+                                ))}
+                              </div>
+                              {achievement.originalText ? (
+                                <p className="mt-2 text-xs leading-6 text-slate-400">原文参考：{achievement.originalText}</p>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                      </article>
+                    ))}
                   </div>
-                ) : null}
+                ) : (
+                  <div className="rounded-[24px] border border-dashed border-stone-200 bg-white px-5 py-4 text-sm leading-7 text-slate-500">
+                    暂未提取到结构化的优化经历表达。已兼容更多 AI 返回字段，请重新点击一次“优化简历”查看最新结果。
+                  </div>
+                )}
               </section>
             </div>
           )}
@@ -469,5 +652,8 @@ export default function ResumeOptimizerWorkspace() {
     </div>
   );
 }
+
+
+
 
 

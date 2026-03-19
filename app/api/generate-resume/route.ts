@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import type { ResumePersona } from "@/components/templates/types";
 import { normalizeResumeData } from "@/lib/resume-data";
@@ -24,7 +24,7 @@ function buildUserPrompt(input: {
     "要求：",
     "1. 如果用户已选择身份预设，请围绕该身份安排内容重点。",
     "2. 应届或实习阶段优先强调教育、实习、校园经历、项目、证书。",
-    "3. 职场人士优先强调工作经历、项目经验、专业技能和量化成果。",
+    "3. 职场人士优先强调工作经历、项目经验和量化成果。",
     "4. 没有把握的信息留空，不要虚构。",
     "",
     `【身份预设】\n${input.persona}`,

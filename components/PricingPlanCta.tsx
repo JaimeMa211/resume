@@ -38,7 +38,7 @@ export default function PricingPlanCta({
   highlighted,
   className,
 }: PricingPlanCtaProps) {
-  const [session, setSession] = useState<AuthSession | null>(() => getCurrentSession());
+  const [session, setSession] = useState<AuthSession | null>(null);
 
   useEffect(() => {
     return subscribeAuthChange(() => {
@@ -62,3 +62,4 @@ export default function PricingPlanCta({
     </Link>
   );
 }
+

@@ -69,13 +69,13 @@ const personaCards = [
     title: "应届生",
     description: "兼顾校园经历与岗位相关项目，适合第一份全职工作投递。",
     icon: Medal,
-    tags: ["校园经历", "项目亮点", "技能关键词"],
+    tags: ["校园经历", "项目亮点"],
   },
   {
     title: "职场人士",
     description: "优先突出工作经历、核心项目和量化成果，适合社招岗位。",
     icon: Trophy,
-    tags: ["工作经历", "结果指标", "专业技能"],
+    tags: ["工作经历", "结果指标"],
   },
 ];
 
@@ -440,3 +440,4 @@ export default function LandingPage() {
     </SiteFrame>
   );
 }
+

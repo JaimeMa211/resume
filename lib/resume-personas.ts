@@ -1,4 +1,4 @@
-﻿import type { ResumeModuleId, ResumePersona } from "@/components/templates/types";
+import type { ResumeModuleId, ResumePersona } from "@/components/templates/types";
 
 export type ResumeModuleConfig = {
   id: ResumeModuleId;
@@ -32,11 +32,7 @@ export const RESUME_MODULE_CATALOG: Record<ResumeModuleId, ResumeModuleConfig> =
     title: "自我评价",
     description: "用简短语言概括定位、优势和匹配点。",
   },
-  skills: {
-    id: "skills",
-    title: "技能关键词",
-    description: "保留和岗位强相关的硬技能与关键词。",
-  },
+
   education: {
     id: "education",
     title: "教育背景",
@@ -89,7 +85,7 @@ export const RESUME_PERSONA_DEFINITIONS: Record<ResumePersona, ResumePersonaDefi
       { id: "projects", required: true },
       { id: "campus", required: false },
       { id: "awards", required: false },
-      { id: "skills", required: true },
+
       { id: "summary", required: false },
       { id: "credentials", required: false },
     ],
@@ -108,7 +104,7 @@ export const RESUME_PERSONA_DEFINITIONS: Record<ResumePersona, ResumePersonaDefi
       { id: "campus", required: true },
       { id: "projects", required: true },
       { id: "awards", required: false },
-      { id: "skills", required: true },
+
       { id: "summary", required: false },
       { id: "credentials", required: false },
     ],
@@ -117,14 +113,14 @@ export const RESUME_PERSONA_DEFINITIONS: Record<ResumePersona, ResumePersonaDefi
     persona: "experienced",
     label: "职场人士",
     shortLabel: "社招",
-    description: "优先突出工作经历、项目经验、专业技能和量化业绩。",
+    description: "优先突出工作经历、项目经验和量化业绩。",
     summaryTitle: "职业概述",
     summaryHint: "提炼年限、方向、核心能力和代表性成果。",
     modules: [
       { id: "profile", required: true },
       { id: "work", required: true },
       { id: "projects", required: true },
-      { id: "skills", required: true },
+
       { id: "summary", required: false },
       { id: "education", required: false },
       { id: "credentials", required: false },

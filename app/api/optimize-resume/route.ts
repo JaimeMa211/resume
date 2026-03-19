@@ -16,6 +16,35 @@ type OptimizeResult = {
   new_experiences: OptimizedExperience[];
 };
 
+function pickFirstString(source: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return "";
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/\r?\n|[；;]+/)
+      .map((item) => item.replace(/^[\s•\-*\d.、]+/, "").trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 function buildUserPrompt(resumeText: string, jdText: string) {
   return [
     "请根据系统要求进行 ATS 导向的简历重写，并严格按 JSON 返回。",
@@ -90,17 +119,26 @@ function normalizeResult(raw: unknown): OptimizeResult {
     ? obj.optimizations.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean)
     : [];
 
-  const newExperiences = Array.isArray(obj.new_experiences)
-    ? obj.new_experiences
+  const experienceSource = [obj.new_experiences, obj.optimized_experiences, obj.rewritten_experiences, obj.experiences].find(Array.isArray);
+
+  const newExperiences = Array.isArray(experienceSource)
+    ? experienceSource
         .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
         .map((item) => {
-          const details = Array.isArray(item.details)
-            ? item.details.filter((d): d is string => typeof d === "string").map((d) => d.trim()).filter(Boolean)
-            : [];
+          const details = [
+            ...normalizeStringList(item.details),
+            ...normalizeStringList(item.achievements),
+            ...normalizeStringList(item.highlights),
+            ...normalizeStringList(item.bullets),
+            ...normalizeStringList(item.description),
+            ...normalizeStringList(item.summary),
+            ...normalizeStringList(item.content),
+            ...normalizeStringList(item.text),
+          ].filter((detail, index, array) => array.indexOf(detail) === index);
 
           return {
-            company: typeof item.company === "string" ? item.company.trim() : "",
-            role: typeof item.role === "string" ? item.role.trim() : "",
+            company: pickFirstString(item, ["company", "organization", "employer"]),
+            role: pickFirstString(item, ["role", "title", "position", "job_title"]),
             details,
           };
         })
@@ -215,4 +253,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
 

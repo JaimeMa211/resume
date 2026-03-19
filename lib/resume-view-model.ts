@@ -1,5 +1,5 @@
 ﻿import type { ResumeData, ResumeModuleId } from "@/components/templates/types";
-import { buildCredentialHighlights, buildPersonalContactLine, buildProfessionalSkills } from "@/lib/resume-data";
+import { buildCredentialHighlights, buildPersonalContactLine } from "@/lib/resume-data";
 import { getModuleLabel, getResumePersonaDefinition } from "@/lib/resume-personas";
 
 export type ResumeTemplateEntry = {
@@ -113,9 +113,8 @@ function buildExperienceSection(
       type: "entries",
       entries: data.awards.map((item) => ({
         title: item.name,
-        subtitle: item.issuer,
+        subtitle: [item.issuer, item.detail].filter(Boolean).join(" | "),
         meta: item.date,
-        bullets: item.detail ? [item.detail] : [],
       })),
     };
   }
@@ -133,20 +132,6 @@ function buildSummarySection(data: ResumeData): ResumeTemplateSection | null {
     title: getResumePersonaDefinition(data.persona).summaryTitle,
     type: "text",
     text: data.professional_summary.trim(),
-  };
-}
-
-function buildSkillsSection(data: ResumeData): ResumeTemplateSection | null {
-  const items = buildProfessionalSkills(data);
-  if (items.length === 0) {
-    return null;
-  }
-
-  return {
-    id: "skills",
-    title: getModuleLabel(data.persona, "skills"),
-    type: "list",
-    items,
   };
 }
 
@@ -174,8 +159,7 @@ export function buildResumeTemplateSections(data: ResumeData): ResumeTemplateSec
       switch (id) {
         case "summary":
           return buildSummarySection(data);
-        case "skills":
-          return buildSkillsSection(data);
+
         case "education":
           return buildEducationSection(data);
         case "internships":
@@ -201,3 +185,5 @@ export function buildResumeContactItems(data: ResumeData, limit?: number): strin
 
   return typeof limit === "number" ? items.slice(0, limit) : items;
 }
+
+

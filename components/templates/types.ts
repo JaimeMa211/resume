@@ -64,7 +64,6 @@ export type ResumePersona = "intern" | "graduate" | "experienced";
 export type ResumeModuleId =
   | "profile"
   | "summary"
-  | "skills"
   | "education"
   | "internships"
   | "campus"

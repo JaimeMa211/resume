@@ -17,7 +17,7 @@ function sectionBadge(title: string) {
 
 function renderSection(section: ResumeTemplateSection) {
   if (section.type === "text") {
-    return <p className="rounded border border-[#D5DDE2] bg-white px-2 py-1.5 text-[#505D67]">{section.text}</p>;
+    return <p className="text-[10px] leading-[1.75] text-[#505D67]">{section.text}</p>;
   }
 
   if (section.type === "list") {
@@ -27,6 +27,22 @@ function renderSection(section: ResumeTemplateSection) {
           <li key={item}>{item}</li>
         ))}
       </ul>
+    );
+  }
+
+  if (section.id === "awards") {
+    return (
+      <div className="space-y-1.5 pl-1">
+        {section.entries.map((entry) => (
+          <div key={`${entry.title}-${entry.subtitle}-${entry.meta}`} className="grid grid-cols-[minmax(0,1fr)_72px] items-start gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-[#2F3C45]">{entry.title}</p>
+              {entry.subtitle ? <p className="truncate text-[#5A6670]">{entry.subtitle}</p> : null}
+            </div>
+            {entry.meta ? <p className="text-right text-[11px] font-semibold text-[#2F3C45]">{entry.meta}</p> : null}
+          </div>
+        ))}
+      </div>
     );
   }
 
@@ -56,8 +72,8 @@ export function HarvardTemplate({ data }: HarvardTemplateProps) {
   const sections = buildResumeTemplateSections(data);
 
   return (
-    <article className="h-full bg-[#FBFBFB] px-8 py-6 text-[10px] leading-[1.6] text-[#2E2E2E]">
-      <header className="mb-4 border-b border-[#9AA8B3] pb-3">
+    <article className="h-full bg-[#FBFBFB] px-8 pt-4 pb-6 text-[10px] leading-[1.6] text-[#2E2E2E] print:pt-2">
+      <header className="mb-4 border-b border-[#9AA8B3] pb-3 print:mb-3">
         <PersonalInfoHeader
           data={data}
           className="grid-cols-[88px_minmax(170px,220px)_minmax(0,1fr)] gap-5"

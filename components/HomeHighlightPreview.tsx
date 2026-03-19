@@ -21,7 +21,7 @@ const personaPresets = {
     label: "应届生",
     score: 84,
     summary: "兼顾实习、项目和校园经历，强调成长速度与岗位匹配点。",
-    modules: ["教育背景", "实习经历", "项目经历", "技能关键词"],
+    modules: ["教育背景", "实习经历", "项目经历"],
     bullets: [
       "将内容运营与活动策划经历压缩成更利于校招 HR 快速浏览的三条亮点。",
       "自动补入与 JD 高度一致的用户增长、复盘分析和跨团队协作关键词。",
@@ -32,7 +32,7 @@ const personaPresets = {
     label: "职场人士",
     score: 91,
     summary: "优先突出工作成果、代表项目和管理复杂度，让社招价值更直接。",
-    modules: ["工作经历", "项目经历", "技能关键词", "职业概述"],
+    modules: ["工作经历", "项目经历", "职业概述"],
     bullets: [
       "把项目中的业务结果改写成量化表述，补齐 38% 性能提升和转化指标。",
       "自动补入与岗位更贴近的 TypeScript、Next.js、工程化关键词，提高 ATS 命中率。",
@@ -254,3 +254,4 @@ export default function HomeHighlightPreview() {
     </div>
   );
 }
+

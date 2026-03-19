@@ -100,7 +100,7 @@ function TemplateOptionCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold leading-5">{option.label}</p>
-            {active ? <span className="rounded-full bg-[#f3dfcf] px-2 py-1 text-[11px] font-semibold text-[#9a5a33]">褰撳墠</span> : null}
+            {active ? <span className="rounded-full bg-[#f3dfcf] px-2 py-1 text-[11px] font-semibold text-[#9a5a33]">已选择</span> : null}
           </div>
           <p className={cn("mt-0.5 text-xs leading-4", active ? "text-[#9a5a33]" : "text-slate-500")}>{option.subtitle}</p>
         </div>
@@ -111,7 +111,7 @@ function TemplateOptionCard({
 
 function getExperienceRank(duration: string): number {
   const normalized = duration.toLowerCase();
-  if (/(present|current|now|\u81f3\u4eca)/.test(normalized)) {
+  if (/(present|current|now|至今)/.test(normalized)) {
     return Number.MAX_SAFE_INTEGER;
   }
 
@@ -129,60 +129,24 @@ function sortExperienceByDateDesc(items: WorkExperience[]): WorkExperience[] {
 
 export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>(function ResumeBuilder({ data }, ref) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey>("harvard");
-  const [printScale, setPrintScale] = useState(1);
   const [previewScale, setPreviewScale] = useState(1);
   const [fitWidthScale, setFitWidthScale] = useState(1);
+  const [contentFitScale, setContentFitScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const previewViewportRef = useRef<HTMLDivElement>(null);
-  const resumeContentRef = useRef<HTMLDivElement>(null);
+  const resumeScaleTargetRef = useRef<HTMLDivElement>(null);
+  const previewScrollPositionRef = useRef<{ top: number; left: number } | null>(null);
 
-  const syncPrintScale = useCallback(() => {
-    const contentNode = resumeContentRef.current;
-    if (!contentNode) {
-      setPrintScale(1);
-      return 1;
-    }
+  const normalizedData = useMemo<ResumeData>(
+    () =>
+      normalizeResumeData({
+        ...data,
+        work_experience: sortExperienceByDateDesc(data.work_experience ?? []),
+      }),
+    [data],
+  );
 
-    const width = contentNode.scrollWidth;
-    const height = contentNode.scrollHeight;
-    const scale = Math.min(1, A4_WIDTH_PX / width, A4_HEIGHT_PX / height);
-    const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
-
-    setPrintScale(safeScale);
-    return safeScale;
-  }, []);
-
-  useEffect(() => {
-    const onBeforePrint = () => {
-      syncPrintScale();
-    };
-    const onAfterPrint = () => {
-      setPrintScale(1);
-    };
-
-    window.addEventListener("beforeprint", onBeforePrint);
-    window.addEventListener("afterprint", onAfterPrint);
-
-    return () => {
-      window.removeEventListener("beforeprint", onBeforePrint);
-      window.removeEventListener("afterprint", onAfterPrint);
-    };
-  }, [syncPrintScale]);
-
-  useEffect(() => {
-    if (!isFullscreen) {
-      return;
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsFullscreen(false);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isFullscreen]);
+  const templateNode = useMemo(() => renderTemplateNode(selectedTemplate, normalizedData), [normalizedData, selectedTemplate]);
 
   const syncFitWidthScale = useCallback(() => {
     const viewportNode = previewViewportRef.current;
@@ -197,6 +161,47 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
 
     setFitWidthScale(safeScale);
     return safeScale;
+  }, []);
+
+  const syncContentFitScale = useCallback(() => {
+    const scaleTargetNode = resumeScaleTargetRef.current;
+    if (!scaleTargetNode) {
+      setContentFitScale(1);
+      return 1;
+    }
+
+    const width = scaleTargetNode.scrollWidth;
+    const height = scaleTargetNode.scrollHeight;
+    const nextScale = Math.min(1, A4_WIDTH_PX / Math.max(width, 1), A4_HEIGHT_PX / Math.max(height, 1));
+    const safeScale = Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 1;
+
+    setContentFitScale(safeScale);
+    return safeScale;
+  }, []);
+
+  const preparePrintViewport = useCallback(() => {
+    const viewportNode = previewViewportRef.current;
+    if (!viewportNode) {
+      return;
+    }
+
+    previewScrollPositionRef.current = {
+      top: viewportNode.scrollTop,
+      left: viewportNode.scrollLeft,
+    };
+
+    viewportNode.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
+
+  const restorePrintViewport = useCallback(() => {
+    const viewportNode = previewViewportRef.current;
+    const snapshot = previewScrollPositionRef.current;
+    if (!viewportNode || !snapshot) {
+      return;
+    }
+
+    viewportNode.scrollTo({ top: snapshot.top, left: snapshot.left, behavior: "auto" });
+    previewScrollPositionRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -231,10 +236,200 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
     };
   }, [isFullscreen, syncFitWidthScale]);
 
+  useEffect(() => {
+    const animationFrame = window.requestAnimationFrame(() => {
+      syncContentFitScale();
+    });
+
+    const timeoutId = window.setTimeout(() => {
+      syncContentFitScale();
+    }, 80);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.clearTimeout(timeoutId);
+    };
+  }, [selectedTemplate, normalizedData, syncContentFitScale]);
+
+  useEffect(() => {
+    const onBeforePrint = () => {
+      preparePrintViewport();
+      syncContentFitScale();
+    };
+
+    const onAfterPrint = () => {
+      restorePrintViewport();
+    };
+
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
+    return () => {
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
+    };
+  }, [preparePrintViewport, restorePrintViewport, syncContentFitScale]);
+
+  useEffect(() => {
+    if (!isFullscreen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isFullscreen]);
+
   const handlePrint = useCallback(() => {
-    syncPrintScale();
-    window.setTimeout(() => window.print(), 50);
-  }, [syncPrintScale]);
+    const sourceNode = resumeScaleTargetRef.current;
+    if (!sourceNode) {
+      return;
+    }
+
+    const nextContentFitScale = syncContentFitScale();
+    const headMarkup = Array.from(document.head.querySelectorAll("style, link[rel='stylesheet']"))
+      .map((node) => node.outerHTML)
+      .join("\n");
+
+    const printDocument = `
+      <!doctype html>
+      <html lang="zh-CN">
+        <head>
+          <meta charset="utf-8" />
+          <title>Resume PDF</title>
+          ${headMarkup}
+          <style>
+            @page {
+              size: A4;
+              margin: 0;
+            }
+
+            html,
+            body {
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 210mm;
+              height: 297mm;
+              overflow: hidden !important;
+              background: #ffffff !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+
+            body * {
+              visibility: visible !important;
+            }
+
+            .pdf-shell,
+            .pdf-shell * {
+              visibility: visible !important;
+            }
+
+            .pdf-shell {
+              position: relative;
+              width: 794px;
+              height: 1123px;
+              overflow: hidden;
+              background: #ffffff;
+            }
+
+            .pdf-scale {
+              position: absolute;
+              inset: 0;
+              width: 794px;
+              height: 1123px;
+              transform-origin: left top;
+              transform: scale(${nextContentFitScale});
+            }
+
+            .pdf-scale > * {
+              margin: 0 !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="pdf-shell">
+            <div class="pdf-scale">${sourceNode.innerHTML}</div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+    document.body.appendChild(iframe);
+
+    const cleanup = () => {
+      window.setTimeout(() => {
+        iframe.remove();
+      }, 200);
+    };
+
+    const frameWindow = iframe.contentWindow;
+    const frameDocument = frameWindow?.document;
+
+    if (!frameWindow || !frameDocument) {
+      cleanup();
+      preparePrintViewport();
+      window.setTimeout(() => window.print(), 80);
+      return;
+    }
+
+    frameDocument.open();
+    frameDocument.write(printDocument);
+    frameDocument.close();
+
+    const triggerPrint = () => {
+      const pendingImages = Array.from(frameDocument.images).filter((image) => !image.complete);
+
+      if (pendingImages.length === 0) {
+        window.setTimeout(() => {
+          frameWindow.focus();
+          frameWindow.print();
+        }, 120);
+        return;
+      }
+
+      let resolvedCount = 0;
+      const finish = () => {
+        resolvedCount += 1;
+        if (resolvedCount < pendingImages.length) {
+          return;
+        }
+
+        window.setTimeout(() => {
+          frameWindow.focus();
+          frameWindow.print();
+        }, 120);
+      };
+
+      pendingImages.forEach((image) => {
+        image.addEventListener("load", finish, { once: true });
+        image.addEventListener("error", finish, { once: true });
+      });
+    };
+
+    frameWindow.addEventListener("afterprint", cleanup, { once: true });
+
+    if (frameDocument.readyState === "complete") {
+      triggerPrint();
+      return;
+    }
+
+    iframe.addEventListener("load", triggerPrint, { once: true });
+  }, [preparePrintViewport, syncContentFitScale]);
 
   const effectivePreviewScale = fitWidthScale * previewScale;
   const canZoomOut = previewScale > previewScaleSteps[0];
@@ -257,17 +452,6 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
     [handlePrint],
   );
 
-  const normalizedData = useMemo<ResumeData>(
-    () =>
-      normalizeResumeData({
-        ...data,
-        work_experience: sortExperienceByDateDesc(data.work_experience ?? []),
-      }),
-    [data],
-  );
-
-  const templateNode = useMemo(() => renderTemplateNode(selectedTemplate, normalizedData), [normalizedData, selectedTemplate]);
-
   return (
     <section
       className={cn(
@@ -282,7 +466,10 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
             margin: 0;
           }
 
+          html,
           body {
+            margin: 0 !important;
+            padding: 0 !important;
             background: #fff !important;
           }
 
@@ -293,6 +480,8 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
           .resume-print-root,
           .resume-print-root * {
             visibility: visible;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
 
           .no-print {
@@ -301,29 +490,73 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
 
           .resume-print-root {
             position: absolute;
-            left: 0;
-            top: 0;
+            inset: 0 !important;
             width: 210mm !important;
             height: 297mm !important;
             overflow: hidden !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            background: #fff !important;
+          }
+
+          .resume-print-stage {
+            position: absolute !important;
+            inset: 0 !important;
+            display: block !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          .resume-print-canvas {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 210mm !important;
+            height: 297mm !important;
+            min-width: 210mm !important;
+            min-height: 297mm !important;
           }
 
           .resume-print-paper {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
             border: 0 !important;
+            border-radius: 0 !important;
             box-shadow: none !important;
             width: 210mm !important;
             height: 297mm !important;
             max-width: 210mm !important;
             overflow: hidden !important;
+            transform: none !important;
             page-break-inside: avoid !important;
             break-inside: avoid-page !important;
           }
 
           .resume-print-content {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 210mm !important;
+            height: 297mm !important;
+          }
+
+          .resume-print-scale-target {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            margin: 0 !important;
             transform-origin: left top !important;
-            transform: scale(var(--resume-print-scale, 1)) !important;
+            transform: scale(var(--resume-content-scale, 1)) !important;
           }
         }
       `}</style>
@@ -333,9 +566,9 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
               <LayoutTemplate className="h-3.5 w-3.5 text-[#b85c2c]" />
-              {"\u6a21\u677f\u5207\u6362"}
+              模板切换
             </div>
-            <p className="mt-1 text-xs leading-5 text-slate-600">{"\u5207\u6362\u7248\u5f0f\u540e\uff0c\u53f3\u4fa7\u9884\u89c8\u548c PDF \u5bfc\u51fa\u4f1a\u540c\u6b65\u66f4\u65b0\u3002"}</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">切换版式后，右侧预览和 PDF 导出会同步更新。内容超出一页时会自动压缩到单页。</p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <div className="inline-flex items-center rounded-full border border-stone-300 bg-white p-1 shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
@@ -344,7 +577,8 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
                 onClick={() => changePreviewScale(-1)}
                 disabled={!canZoomOut}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-700 transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:text-slate-300"
-                aria-label={"\u7f29\u5c0f\u9884\u89c8"}>
+                aria-label="缩小预览"
+              >
                 <Minus className="h-4 w-4" />
               </button>
               <span className="min-w-[64px] text-center text-sm font-semibold text-slate-700">{Math.round(effectivePreviewScale * 100)}%</span>
@@ -353,7 +587,7 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
                 onClick={() => changePreviewScale(1)}
                 disabled={!canZoomIn}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-700 transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:text-slate-300"
-                aria-label="鏀惧ぇ棰勮"
+                aria-label="放大预览"
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -371,7 +605,7 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
 
         <div className="mt-2 w-full sm:hidden">
           <label className="sr-only" htmlFor="template-selector">
-            {"\u9009\u62e9\u6a21\u677f"}
+            选择模板
           </label>
           <select
             id="template-selector"
@@ -381,7 +615,7 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
           >
             {templateOptions.map((option) => (
               <option key={option.key} value={option.key}>
-                {option.label} 路 {option.subtitle}
+                {option.label} · {option.subtitle}
               </option>
             ))}
           </select>
@@ -410,9 +644,9 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
           isFullscreen ? "h-[calc(100vh-11rem)]" : "max-h-[calc(100vh-11rem)]",
         )}
       >
-        <div className="flex min-h-full min-w-full items-start justify-center p-4">
+        <div className="resume-print-stage flex min-h-full min-w-full items-start justify-center p-4">
           <div
-            className="mx-auto shrink-0"
+            className="resume-print-canvas mx-auto shrink-0"
             style={{
               width: `${A4_WIDTH_PX * effectivePreviewScale}px`,
               height: `${A4_HEIGHT_PX * effectivePreviewScale}px`,
@@ -424,12 +658,19 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
               className="resume-print-paper origin-top-left overflow-hidden rounded-[22px] border border-stone-300 bg-white shadow-[0_28px_60px_rgba(15,23,42,0.14)] transition-transform duration-200 print:rounded-none print:border-0 print:shadow-none"
               style={{ width: `${A4_WIDTH_PX}px`, height: `${A4_HEIGHT_PX}px`, transform: `scale(${effectivePreviewScale})` }}
             >
-              <div
-                ref={resumeContentRef}
-                className="resume-print-content h-full w-full"
-                style={{ width: `${A4_WIDTH_PX}px`, height: `${A4_HEIGHT_PX}px`, "--resume-print-scale": `${printScale}` } as CSSProperties}
-              >
-                {templateNode}
+              <div className="resume-print-content h-full w-full overflow-hidden">
+                <div
+                  ref={resumeScaleTargetRef}
+                  className="resume-print-scale-target h-full w-full"
+                  style={{
+                    width: `${A4_WIDTH_PX}px`,
+                    height: `${A4_HEIGHT_PX}px`,
+                    transform: `scale(${contentFitScale})`,
+                    "--resume-content-scale": `${contentFitScale}`,
+                  } as CSSProperties}
+                >
+                  {templateNode}
+                </div>
               </div>
             </div>
           </div>
@@ -438,14 +679,3 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
     </section>
   );
 });
-
-
-
-
-
-
-
-
-
-
-

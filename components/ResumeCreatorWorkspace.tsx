@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -350,8 +350,7 @@ function sectionIcon(moduleId: ResumeModuleId): typeof Sparkles {
       return UserRound;
     case "summary":
       return PencilLine;
-    case "skills":
-      return Sparkles;
+
     case "education":
       return GraduationCap;
     case "internships":
@@ -686,9 +685,7 @@ export default function ResumeCreatorWorkspace() {
         case "summary":
           badge = draft.professional_summary.trim() ? "已填" : rule.required ? "必填" : "选填";
           break;
-        case "skills":
-          badge = countBadge(rule.required, draft.skills.length, "项");
-          break;
+
         case "education":
           badge = countBadge(rule.required, draft.education.length, "段");
           break;
@@ -818,23 +815,6 @@ export default function ResumeCreatorWorkspace() {
       </SectionPanel>
     );
   }
-
-  function renderSkillsSection() {
-    return (
-      <SectionPanel eyebrow="Skills" title="技能关键词" description="只保留和目标岗位强相关的技能标签。能支撑项目、实习、工作经历的关键词，才值得放进来。">
-        <Field label="技能关键词" hint="每行一个，或使用逗号分隔">
-          <Textarea
-            value={toMultilineText(draft.skills)}
-            onChange={(event) => setDraft((current) => ({ ...current, skills: parseMultilineText(event.target.value) }))}
-            rows={8}
-            className="min-h-36 rounded-2xl border-stone-300 bg-white px-4 py-3"
-            placeholder="React`nTypeScript`nSQL`n活动策划`n数据分析"
-          />
-        </Field>
-      </SectionPanel>
-    );
-  }
-
   function renderRoleExperienceSection(options: {
     eyebrow: string;
     title: string;
@@ -1272,8 +1252,6 @@ export default function ResumeCreatorWorkspace() {
         return renderProfileSection();
       case "summary":
         return renderSummarySection();
-      case "skills":
-        return renderSkillsSection();
       case "education":
         return renderEducationSection();
       case "internships":

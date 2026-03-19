@@ -29,6 +29,22 @@ function renderSection(section: ResumeTemplateSection) {
     );
   }
 
+  if (section.id === "awards") {
+    return (
+      <div className="space-y-1.5">
+        {section.entries.map((entry) => (
+          <div key={`${entry.title}-${entry.subtitle}-${entry.meta}`} className="grid grid-cols-[72px_minmax(0,1fr)] items-start gap-3">
+            {entry.meta ? <p className="text-[11px] font-bold">{entry.meta}</p> : <span />}
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold">{entry.title}</p>
+              {entry.subtitle ? <p className="truncate font-semibold text-[#2F3E4A]">{entry.subtitle}</p> : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       {section.entries.map((entry) => (
@@ -55,8 +71,8 @@ export function ModernTechTemplate({ data }: ModernTechTemplateProps) {
   const sections = buildResumeTemplateSections(data);
 
   return (
-    <article className="h-full bg-white px-8 py-7 text-[10px] leading-[1.55] text-[#1F2933]">
-      <header className="mb-4 border-t border-[#222] pt-3">
+    <article className="h-full bg-white px-8 pt-4 pb-7 text-[10px] leading-[1.55] text-[#1F2933] print:pt-2">
+      <header className="mb-4 border-t border-[#222] pt-2 print:mb-3 print:pt-1">
         <PersonalInfoHeader
           data={data}
           className="grid-cols-[96px_minmax(160px,210px)_minmax(0,1fr)] gap-5"
