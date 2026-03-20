@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
-import { Download, FileStack, ScanSearch, Sparkles, WandSparkles } from "lucide-react";
+import { ArrowRight, Download, FileStack, ScanSearch, Sparkles, WandSparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -44,7 +44,7 @@ const personaPresets = {
 const templatePresets = [
   { id: "harvard", label: "模板 1", alias: "Harvard", tone: "经典稳妥", accent: "bg-[#111827] text-white" },
   { id: "modern", label: "模板 2", alias: "Modern", tone: "现代双栏", accent: "bg-[#b85c2c] text-white" },
-  { id: "minimal", label: "模板 3", alias: "Minimal", tone: "简约单页", accent: "bg-[#e9eef4] text-slate-700" },
+  { id: "minimal", label: "模板 3", alias: "Minimal", tone: "简约单页", accent: "bg-[#f7efe6] text-[#9a4e25]" },
 ] as const;
 
 const inputChannels = [
@@ -61,12 +61,12 @@ export default function HomeHighlightPreview() {
   const template = templatePresets.find((item) => item.id === activeTemplate) ?? templatePresets[1];
 
   return (
-    <div className="p-6 md:p-7">
-      <div className="flex min-h-[640px] flex-col rounded-[28px] border border-stone-200 bg-[linear-gradient(180deg,#fffdfa_0%,#f7f3ec_100%)] p-6 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+    <div className="p-5 md:p-7">
+      <div className="flex min-h-[620px] flex-col rounded-[30px] border border-stone-200 bg-[linear-gradient(180deg,#fffdfa_0%,#f8f1ea_100%)] p-6 shadow-[0_22px_60px_rgba(184,92,44,0.08)]">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Integrated Preview</p>
-            <p className="mt-2 text-xl font-semibold text-slate-900">首页直接模拟完整工作台</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Resume Workflow</p>
+            <p className="mt-2 text-xl font-semibold text-slate-900">导入、优化、制作在一个工作流里完成</p>
           </div>
           <label className="relative inline-flex cursor-pointer items-center rounded-full border border-stone-200 bg-white px-3 py-2 shadow-sm">
             <input
@@ -76,17 +76,17 @@ export default function HomeHighlightPreview() {
               onChange={(event) => setHighlightAiChanges(event.target.checked)}
             />
             <div className="peer h-6 w-11 rounded-full bg-stone-200 after:absolute after:left-[14px] after:top-[10px] after:h-5 after:w-5 after:rounded-full after:border after:border-stone-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#b85c2c] peer-checked:after:translate-x-full peer-checked:after:border-white" />
-            <span className="ml-3 text-sm font-medium text-slate-700">高亮 AI 修改内容</span>
+            <span className="ml-3 text-sm font-medium text-slate-700">显示改写重点</span>
           </label>
         </div>
 
         <div className="grid gap-3 xl:grid-cols-[220px_minmax(0,1fr)]">
           <aside className="space-y-3">
-            <div className="rounded-[22px] border border-stone-200 bg-white/80 p-4 shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
+            <div className="rounded-[22px] border border-stone-200 bg-white/90 p-4 shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-400">输入入口</p>
               <div className="mt-3 space-y-2">
                 {inputChannels.map((item) => (
-                  <div key={item.title} className="rounded-[16px] bg-[#f8f4ed] px-3 py-3">
+                  <div key={item.title} className="rounded-[16px] bg-[#fbf5ef] px-3 py-3">
                     <p className="text-sm font-semibold text-slate-800">{item.title}</p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">{item.description}</p>
                   </div>
@@ -94,7 +94,7 @@ export default function HomeHighlightPreview() {
               </div>
             </div>
 
-            <div className="rounded-[22px] border border-stone-200 bg-white/80 p-4 shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
+            <div className="rounded-[22px] border border-stone-200 bg-white/90 p-4 shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-400">身份预设</p>
               <div className="mt-3 space-y-2">
                 {Object.entries(personaPresets).map(([key, item]) => (
@@ -105,8 +105,8 @@ export default function HomeHighlightPreview() {
                     className={cn(
                       "w-full rounded-[16px] border px-3 py-3 text-left transition",
                       activePersona === key
-                        ? "border-slate-900 bg-slate-900 text-white"
-                        : "border-stone-200 bg-[#fcfaf7] text-slate-700 hover:border-stone-300",
+                        ? "border-[#b85c2c] bg-[#b85c2c] text-white"
+                        : "border-stone-200 bg-[#fffaf6] text-slate-700 hover:border-stone-300",
                     )}
                   >
                     <p className="text-sm font-semibold">{item.label}</p>
@@ -119,39 +119,30 @@ export default function HomeHighlightPreview() {
 
           <div className="space-y-3">
             <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-[18px] border border-stone-200 bg-white/80 px-4 py-3 shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">匹配评分</p>
-                <p className="mt-2 text-sm font-semibold text-slate-800">{persona.score}% 岗位匹配度</p>
-              </div>
-              <div className="rounded-[18px] border border-stone-200 bg-white/80 px-4 py-3 shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">模板联动</p>
-                <p className="mt-2 text-sm font-semibold text-slate-800">{template.alias} 预览已联动</p>
-              </div>
-              <div className="rounded-[18px] border border-stone-200 bg-white/80 px-4 py-3 shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">结果动作</p>
-                <p className="mt-2 text-sm font-semibold text-slate-800">可继续进入制作页</p>
-              </div>
+              <StatCard label="匹配评分" value={`${persona.score}% 岗位匹配度`} />
+              <StatCard label="模板联动" value={`${template.alias} 预览已联动`} />
+              <StatCard label="输出结果" value="可直接继续排版并导出" />
             </div>
 
-            <div className="rounded-[24px] border border-stone-200 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+            <div className="rounded-[24px] border border-stone-200 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Optimization Result</p>
-                  <p className="mt-3 text-2xl font-semibold text-slate-900">当前展示的是 {persona.label} 工作流。</p>
+                  <p className="mt-3 text-2xl font-semibold text-slate-900">{persona.label} 简历改写结果</p>
                   <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-500">
-                    首页预览已经把优化工作台和制作工作台拼到一起，既能说明 AI 做了什么，也能说明后续如何接模板和导出。
+                    先对照目标 JD 调整摘要、关键词和经历表达，再把结果带到模板页继续完成排版。
                   </p>
                 </div>
-                <div className="rounded-full bg-[#f7efe6] px-4 py-2 text-sm font-semibold text-[#b85c2c]">{persona.score}% 岗位匹配度</div>
+                <div className="rounded-full bg-[#f7efe6] px-4 py-2 text-sm font-semibold text-[#9a4e25]">{persona.score}% 岗位匹配度</div>
               </div>
 
               <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
                 <div className="space-y-5">
                   <section>
                     <div className="mb-3 flex items-center justify-between gap-3">
-                      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#b85c2c]">AI 职业摘要</p>
+                      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#9a4e25]">AI 职业摘要</p>
                       <span className="rounded-full border border-[#ead7c8] bg-[#fbf2ea] px-3 py-1 text-xs font-semibold text-[#b85c2c]">
-                        先分析 JD，再重写表述
+                        JD 关键词已合并进表述
                       </span>
                     </div>
                     <p
@@ -165,13 +156,13 @@ export default function HomeHighlightPreview() {
                   </section>
 
                   <section>
-                    <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-[#b85c2c]">优化后的关键动作</p>
+                    <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-[#9a4e25]">优化后的关键动作</p>
                     <ul className="space-y-3 text-sm text-slate-700">
                       {persona.bullets.map((item, index) => (
                         <li
                           key={item}
                           className={cn(
-                            "rounded-[18px] border border-stone-200 bg-[#fcfaf7] px-4 py-3 leading-7",
+                            "rounded-[18px] border border-stone-200 bg-[#fffaf6] px-4 py-3 leading-7",
                             highlightAiChanges && index < 2 && "border-[#ead7c8] bg-[#fbf2ea] text-slate-900",
                           )}
                         >
@@ -182,9 +173,9 @@ export default function HomeHighlightPreview() {
                   </section>
 
                   <section>
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-[#b85c2c]">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-[#9a4e25]">
                       <WandSparkles className="h-4 w-4" />
-                      <span>进入制作页后的模块</span>
+                      <span>带入模板页的内容模块</span>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {persona.modules.map((item) => (
@@ -196,7 +187,7 @@ export default function HomeHighlightPreview() {
                   </section>
                 </div>
 
-                <aside className="space-y-3 rounded-[22px] border border-stone-200 bg-[linear-gradient(180deg,#fbf6f0_0%,#ffffff_100%)] p-4">
+                <aside className="space-y-3 rounded-[22px] border border-stone-200 bg-[linear-gradient(180deg,#fff7ef_0%,#ffffff_100%)] p-4">
                   <div>
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
                       <FileStack className="h-4 w-4" />
@@ -228,7 +219,7 @@ export default function HomeHighlightPreview() {
                   <div className="rounded-[18px] bg-[#111827] p-4 text-white">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-white/60">
                       <ScanSearch className="h-4 w-4" />
-                      <span>工作流状态</span>
+                      <span>流程状态</span>
                     </div>
                     <div className="mt-3 space-y-2 text-sm">
                       <div className="flex items-center gap-2">
@@ -245,6 +236,15 @@ export default function HomeHighlightPreview() {
                       </div>
                     </div>
                   </div>
+
+                  <div className="rounded-[18px] border border-stone-200 bg-white px-4 py-4">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
+                      <ArrowRight className="h-4 w-4" />
+                      <span>下一步</span>
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-slate-900">沿用当前版本进入模板制作</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">不用手动搬运内容，继续调整版式后即可下载。</p>
+                  </div>
                 </aside>
               </div>
             </div>
@@ -255,3 +255,11 @@ export default function HomeHighlightPreview() {
   );
 }
 
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[18px] border border-stone-200 bg-white/90 px-4 py-3 shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
+      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-slate-800">{value}</p>
+    </div>
+  );
+}

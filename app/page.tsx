@@ -1,289 +1,177 @@
-﻿import {
+import {
   ArrowRight,
+  BrainCircuit,
+  Check,
   Download,
-  FileStack,
   FileText,
-  GraduationCap,
-  Medal,
+  LockKeyhole,
   ScanSearch,
-  ShieldCheck,
-  Sparkles,
-  Trophy,
   Workflow,
 } from "lucide-react";
 import Link from "next/link";
 
-import BrandIcon from "@/components/BrandIcon";
 import HomeHighlightPreview from "@/components/HomeHighlightPreview";
 import SiteFrame, { siteContainerClass } from "@/components/SiteFrame";
 import { cn } from "@/lib/utils";
 
+const trustIndicators = ["AI 定向优化", "本地草稿保存", "3 套模板联动", "PDF 导出"];
+
 const heroStats = [
-  { label: "输入方式", value: "PDF + 文本 + JD" },
-  { label: "身份预设", value: "实习 / 应届 / 社招" },
-  { label: "最终产出", value: "模板预览 + PDF" },
+  { label: "接入方式", value: "PDF + 原文 + JD" },
+  { label: "流程衔接", value: "优化后直接进入制作页" },
+  { label: "结果产出", value: "实时预览 + PDF 导出" },
 ];
 
-const pipelineSteps = [
-  { label: "01", title: "导入旧简历", description: "支持 PDF 解析，也能直接粘贴现有简历正文。" },
-  { label: "02", title: "贴入岗位 JD", description: "系统先提炼职责重点、能力词和结果导向表达。" },
-  { label: "03", title: "生成优化稿", description: "自动补齐关键词、压缩冗余描述、突出量化成果。" },
-  { label: "04", title: "继续套版导出", description: "优化结果可直接进入制作页，切模板并导出 PDF。" },
-];
-
-const featureGroups = [
+const quickReasons = [
   {
-    title: "输入与解析",
-    description: "不是只给一个文本框，而是把用户真实会用到的入口都放进来。",
-    icon: FileText,
-    items: ["拖拽上传 PDF 简历", "自动提取可编辑文本", "手动粘贴原始简历", "独立输入目标 JD"],
+    title: "先优化内容",
+    description: "不是上来只换模板，而是先把岗位关键词、经历表述和摘要改对。",
+    icon: BrainCircuit,
   },
   {
-    title: "岗位匹配与改写",
-    description: "先分析职位，再改简历，不让用户手动对照 JD 逐句处理。",
-    icon: ScanSearch,
-    items: ["岗位关键词提炼", "匹配度评分", "项目经历结果化改写", "重点差异高亮"],
-  },
-  {
-    title: "制作工作台",
-    description: "优化完成后不需要另起一套流程，直接接到正式制作界面。",
+    title: "再完成排版",
+    description: "优化结果直接带入模板页，减少重复录入和版本来回搬运。",
     icon: Workflow,
-    items: ["身份预设切换", "模块化信息编辑", "示例稿恢复", "本地草稿保存"],
   },
   {
-    title: "模板与导出",
-    description: "把排版能力放回首页说明里，让用户一眼看到最后能拿到什么。",
+    title: "最后导出成稿",
+    description: "模板切换、实时预览和 PDF 导出放在同一条路径里完成。",
     icon: Download,
-    items: ["3 套官方模板", "右侧实时预览", "模板切换联动", "导出 PDF"],
   },
 ];
 
-const personaCards = [
+const featureSections = [
   {
-    title: "实习生",
-    description: "以教育、实习、项目和校园经历为主，强调潜力与执行力。",
-    icon: GraduationCap,
-    tags: ["教育背景", "实习经历", "项目经历"],
+    eyebrow: "AI 驱动",
+    title: "先理解岗位，再给出更像样的简历版本。",
+    description:
+      "贴入目标 JD 后，系统会先提炼职责重点、技能词和结果导向表达，再对摘要、项目和经历做针对性改写。",
+    bullets: ["岗位关键词提炼", "匹配度评分", "重点差异高亮", "项目经历结果化改写"],
+    visual: "analysis" as const,
   },
   {
-    title: "应届生",
-    description: "兼顾校园经历与岗位相关项目，适合第一份全职工作投递。",
-    icon: Medal,
-    tags: ["校园经历", "项目亮点"],
+    eyebrow: "流程联动",
+    title: "优化结果不用重录，直接延续到模板制作页。",
+    description:
+      "用户可以在优化完内容后，直接继续排版、切换模板并导出，避免多页面重复整理。",
+    bullets: ["优化页到制作页直接衔接", "身份预设切换", "模块化编辑", "模板预览联动"],
+    visual: "workflow" as const,
   },
   {
-    title: "职场人士",
-    description: "优先突出工作经历、核心项目和量化成果，适合社招岗位。",
-    icon: Trophy,
-    tags: ["工作经历", "结果指标"],
-  },
-];
-
-const templateCards = [
-  {
-    name: "模板 1",
-    alias: "Harvard",
-    description: "经典结构化排版，适合稳妥投递。",
-  },
-  {
-    name: "模板 2",
-    alias: "Modern Tech",
-    description: "更现代的双栏信息编排，适合技术与产品岗位。",
-  },
-  {
-    name: "模板 3",
-    alias: "Minimalist",
-    description: "简约单页风格，适合快速成稿与统一视觉。",
+    eyebrow: "隐私优先",
+    title: "本地草稿与导出能力一起提供，减少对隐私的顾虑。",
+    description:
+      "对求职产品来说，隐私和可控感同样重要。首页里把本地保存、PDF 导出和内容自主掌控一起讲清楚，信任感会更高。",
+    bullets: ["本地草稿自动保存", "支持 PDF 导出", "可持续维护素材库", "适合多岗位版本管理"],
+    visual: "privacy" as const,
   },
 ];
 
-const homePlans = [
+const faqItems = [
   {
-    name: "免费版",
-    price: "¥0/月",
-    description: "适合先体验完整工作流。",
-    features: ["每月 3 次 AI 简历优化", "基础匹配评分", "3 套模板预览与 PDF 导出"],
+    q: "懒人简历最核心的功能是什么？",
+    a: "核心不是单一模板，而是把旧简历导入、岗位定向优化、模板制作和 PDF 导出连成一条完整流程。",
   },
   {
-    name: "专业版",
-    price: "¥5/月",
-    description: "适合高频投递和岗位定制化改写。",
-    features: ["每月 120 次优化", "更完整的关键词建议", "优先模型通道"],
-    highlighted: true,
+    q: "支持上传 PDF 简历吗？",
+    a: "支持。你可以上传 PDF，也可以直接粘贴原始简历内容，再补充目标岗位 JD 一起优化。",
   },
   {
-    name: "终身版",
-    price: "¥20/终身",
-    description: "适合长期维护个人简历素材库。",
-    features: ["终身不限次数优化", "模板持续更新", "专属客服支持"],
+    q: "优化后的内容可以直接继续制作吗？",
+    a: "可以。优化结果可以直接带入模板制作页，继续排版、切换模板并导出 PDF。",
+  },
+  {
+    q: "适合哪些求职阶段使用？",
+    a: "实习生、应届生和职场人士都可以使用。系统会根据不同阶段的内容重点帮助你组织和强化简历表达。",
   },
 ];
 
-const surfaceClass =
-  "rounded-[32px] border border-stone-300/70 bg-[rgba(255,253,250,0.84)] shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur";
+const sectionShellClass =
+  "rounded-[34px] border border-stone-300/70 bg-[rgba(255,253,250,0.84)] shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur";
 
 export default function LandingPage() {
   return (
-    <SiteFrame currentPath="/" mainClassName="pb-8">
-      <section className="px-6 pb-14 pt-8 md:pb-18 md:pt-10">
+    <SiteFrame currentPath="/" mainClassName="pb-8" tone="default">
+      <section className="px-6 pb-10 pt-8 md:pb-14 md:pt-10">
         <div className={siteContainerClass()}>
-          <div className="grid gap-8 xl:grid-cols-[minmax(0,1.02fr)_560px] xl:gap-10">
-            <div className="relative overflow-hidden rounded-[38px] border border-[#1d2433]/10 bg-[linear-gradient(135deg,rgba(255,250,244,0.96)_0%,rgba(250,242,232,0.9)_48%,rgba(241,246,250,0.9)_100%)] p-7 shadow-[0_25px_65px_rgba(15,23,42,0.08)] md:p-9">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(184,92,44,0.16),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(23,32,51,0.08),transparent_34%)]" />
-              <div className="relative">
-                <div className="inline-flex items-center gap-3 rounded-full border border-[#ddc0ab] bg-white/72 px-4 py-2 text-sm font-semibold text-[#9a4e25] shadow-[0_10px_24px_rgba(184,92,44,0.08)]">
-                  <BrandIcon className="h-10 w-10 rounded-[16px]" svgClassName="h-7 w-7" />
-                  <span>首页已改为功能聚合视图，不再只讲流程口号</span>
+          <div className="mx-auto max-w-5xl text-center">
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-[#e4c8b3] bg-white/80 px-5 py-2 text-sm font-semibold text-[#9a4e25] shadow-[0_12px_30px_rgba(184,92,44,0.08)]">
+              {trustIndicators.map((item) => (
+                <span key={item} className="inline-flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#b85c2c]" />
+                  {item}
+                </span>
+              ))}
+            </div>
+
+            <h1 className="mt-8 text-4xl font-black leading-[1.04] tracking-[-0.06em] text-slate-950 md:text-6xl">
+              让简历优化与制作，
+              <span className="block text-[#b85c2c]">变得简单、顺手，而且更像真实求职流程。</span>
+            </h1>
+
+            <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-slate-600 md:text-lg">
+              懒人简历把导入旧简历、分析目标岗位、优化表达、切换模板和导出 PDF 连成一条完整路径，帮助你更快做出能投递的简历版本。
+            </p>
+
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                href="/builder"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#b85c2c]"
+              >
+                立即开始制作
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/features"
+                className="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white/78 px-6 py-3.5 text-sm font-semibold text-slate-800 transition hover:bg-white"
+              >
+                先看优化工作台
+              </Link>
+            </div>
+
+            <div className="mt-10 grid gap-4 md:grid-cols-3">
+              {heroStats.map((item) => (
+                <article key={item.label} className="rounded-[24px] border border-white/80 bg-white/82 px-5 py-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{item.label}</p>
+                  <p className="mt-3 text-base font-semibold text-slate-900">{item.value}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div className={cn("mt-10 overflow-hidden", sectionShellClass)}>
+            <div className="border-b border-stone-200 px-6 py-5 md:px-8">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Product Preview</p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">一屏看清从优化到成稿的完整工作流</h2>
                 </div>
-
-                <h1 className="mt-7 max-w-4xl text-4xl font-black leading-[1.02] tracking-[-0.06em] text-slate-950 md:text-6xl">
-                  把简历站真正能做的事，
-                  <span className="block text-[#b85c2c]">一次性完整摆到首页。</span>
-                </h1>
-
-                <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-                  懒人简历现在首页直接展示完整产品能力：导入旧简历、解析 PDF、对照 JD 优化表达、切换身份预设、进入模板制作，再导出 PDF。用户不用翻页猜产品边界，进来就知道这套工具到底能帮他省掉什么。
-                </p>
-
-                <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap">
-                  <Link
-                    href="/features"
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#b85c2c]"
-                  >
-                    先看优化工作台
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                  <Link
-                    href="/builder"
-                    className="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white/75 px-6 py-3.5 text-sm font-semibold text-slate-800 transition hover:bg-white"
-                  >
-                    直接进入制作页
-                  </Link>
-                  <Link
-                    href="/pricing"
-                    className="inline-flex items-center justify-center rounded-full px-2 py-3 text-sm font-semibold text-slate-500 transition hover:text-[#b85c2c]"
-                  >
-                    查看价格方案
-                  </Link>
-                </div>
-
-                <div className="mt-10 grid gap-3 md:grid-cols-3">
-                  {heroStats.map((item) => (
-                    <article
-                      key={item.label}
-                      className="rounded-[24px] border border-white/80 bg-white/78 px-4 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
-                    >
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{item.label}</p>
-                      <p className="mt-2 text-base font-semibold text-slate-900">{item.value}</p>
-                    </article>
-                  ))}
-                </div>
-
-                <div className="mt-10 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
-                  <div className="rounded-[28px] border border-stone-200/90 bg-[#111827] p-5 text-white shadow-[0_20px_40px_rgba(15,23,42,0.18)]">
-                    <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                      <span className="rounded-full bg-white/12 px-3 py-1">PDF 解析</span>
-                      <span className="rounded-full bg-white/12 px-3 py-1">JD 分析</span>
-                      <span className="rounded-full bg-[#f59e0b] px-3 py-1 text-slate-950">AI 改写</span>
-                      <span className="rounded-full bg-white/12 px-3 py-1">模板联动</span>
-                    </div>
-                    <p className="mt-5 text-2xl font-semibold tracking-tight">首页右侧不再是单一卖点卡片，而是一张完整的功能地图。</p>
-                    <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300">
-                      用户会先看到输入源、优化动作、身份适配和导出路径，认知成本比旧首页更低，也更符合真实使用顺序。
-                    </p>
-                  </div>
-
-                  <div className="rounded-[28px] border border-stone-200 bg-white/86 p-5">
-                    <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Quality Signals</p>
-                    <div className="mt-4 space-y-3">
-                      {[
-                        "优化到制作页可直接衔接",
-                        "模板切换与预览同步",
-                        "本地草稿自动保存",
-                      ].map((item) => (
-                        <div key={item} className="flex items-center gap-3 rounded-[18px] bg-[#f8f4ed] px-3 py-3 text-sm font-medium text-slate-700">
-                          <ShieldCheck className="h-4 w-4 text-[#b85c2c]" />
-                          <span>{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                <div className="rounded-full bg-[#fbf2ea] px-4 py-2 text-sm font-semibold text-[#9a4e25]">围绕求职场景打造的简历工作台</div>
               </div>
             </div>
 
-            <div className={cn(surfaceClass, "overflow-hidden p-5")}>
-              <div className="relative h-full rounded-[30px] border border-stone-200 bg-[linear-gradient(180deg,#fffdfa_0%,#f4ede3_100%)] p-5">
-                <div className="absolute -right-10 top-8 h-28 w-28 rounded-full bg-[#f5c97a]/30 blur-3xl" />
-                <div className="absolute left-10 top-24 h-20 w-20 rounded-full bg-[#d8e6f1]/45 blur-3xl" />
-
-                <div className="relative flex items-start justify-between gap-4 border-b border-stone-200 pb-5">
-                  <div className="flex items-center gap-4">
-                    <BrandIcon className="h-16 w-16 shrink-0" svgClassName="h-11 w-11" />
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Home Overview</p>
-                      <p className="mt-2 text-2xl font-semibold text-slate-900">把产品所有能力浓缩成一屏</p>
-                    </div>
-                  </div>
-                  <div className="rounded-full border border-[#ead7c8] bg-white/80 px-3 py-1 text-sm font-semibold text-[#b85c2c]">
-                    功能已聚合
-                  </div>
-                </div>
-
-                <div className="relative mt-5 grid gap-3">
-                  {pipelineSteps.map((item) => (
-                    <article key={item.title} className="grid gap-3 rounded-[22px] border border-stone-200 bg-white/85 p-4 md:grid-cols-[60px_minmax(0,1fr)]">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[#111827] text-sm font-bold text-white">
-                        {item.label}
-                      </div>
-                      <div>
-                        <p className="text-base font-semibold text-slate-900">{item.title}</p>
-                        <p className="mt-1 text-sm leading-6 text-slate-500">{item.description}</p>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <HomeHighlightPreview />
           </div>
         </div>
       </section>
 
       <section className="px-6 py-6">
         <div className={siteContainerClass()}>
-          <div className="mb-8 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Capability Matrix</p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">首页现在直接覆盖完整功能集合</h2>
-            </div>
-            <div className="rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-600">
-              从输入到导出，一页讲清
-            </div>
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Why Choose It</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">从内容到版式，把最费时间的步骤串起来。</h2>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            {featureGroups.map((group) => {
-              const Icon = group.icon;
+          <div className="mt-8 grid gap-5 md:grid-cols-3">
+            {quickReasons.map((item) => {
+              const Icon = item.icon;
               return (
-                <article key={group.title} className={cn(surfaceClass, "p-6")}>
-                  <div className="flex items-start justify-between gap-5">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Capability</p>
-                      <h3 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">{group.title}</h3>
-                      <p className="mt-3 max-w-xl text-sm leading-7 text-slate-600">{group.description}</p>
-                    </div>
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-[#f7efe6] text-[#b85c2c]">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                  </div>
-
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                    {group.items.map((item) => (
-                      <div key={item} className="rounded-[22px] border border-stone-200 bg-white/82 px-4 py-4 text-sm font-medium text-slate-700">
-                        {item}
-                      </div>
-                    ))}
-                  </div>
+                <article key={item.title} className={cn(sectionShellClass, "p-6")}>
+                  <span className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[#f7efe6] text-[#b85c2c]">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <h3 className="mt-5 text-xl font-semibold text-slate-900">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{item.description}</p>
                 </article>
               );
             })}
@@ -291,149 +179,82 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="px-6 py-16">
-        <div className={cn(siteContainerClass(), surfaceClass, "overflow-hidden")}>
-          <div className="grid lg:grid-cols-[360px_minmax(0,1fr)]">
-            <aside className="border-b border-stone-200 bg-[#f8f4ed] p-7 lg:border-b-0 lg:border-r">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Workspace Preview</p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">首页展示不再抽象，直接模拟真实工作台。</h2>
-              <p className="mt-4 text-sm leading-7 text-slate-600">
-                右侧预览把输入、优化、身份预设、模板与导出放进同一个组件里。这样用户在首页就能看懂产品结构，而不是只看到一句“AI 帮你做简历”。
-              </p>
-
-              <div className="mt-7 space-y-3">
-                {[
-                  { title: "输入区", desc: "PDF 上传、文本粘贴、JD 输入" },
-                  { title: "优化区", desc: "匹配度、摘要重写、差异高亮" },
-                  { title: "制作区", desc: "身份切换、模板联动、PDF 导出" },
-                ].map((item) => (
-                  <div key={item.title} className="rounded-[22px] border border-stone-200 bg-white px-4 py-4">
-                    <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                    <p className="mt-1 text-sm text-slate-500">{item.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </aside>
-
-            <section className="bg-[rgba(255,253,250,0.96)]">
-              <HomeHighlightPreview />
-            </section>
-          </div>
-        </div>
-      </section>
-
-      <section className="px-6 py-4">
+      <section className="px-6 py-12">
         <div className={siteContainerClass()}>
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-            <div className={cn(surfaceClass, "p-7")}>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Persona & Template</p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">不同求职阶段和模板能力，也在首页一次说明清楚。</h2>
+          <div className="space-y-8">
+            {featureSections.map((section, index) => (
+              <article key={section.title} className={cn(sectionShellClass, "overflow-hidden p-6 md:p-8")}>
+                <div className={cn("grid gap-8 lg:grid-cols-[minmax(0,1fr)_460px] lg:items-center", index % 2 === 1 && "lg:grid-cols-[460px_minmax(0,1fr)]")}>
+                  {index % 2 === 1 ? <FeatureVisual type={section.visual} /> : null}
 
-              <div className="mt-7 grid gap-4 md:grid-cols-3">
-                {personaCards.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <article key={item.title} className="rounded-[26px] border border-stone-200 bg-white/86 p-5">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-[#f7efe6] text-[#b85c2c]">
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <h3 className="mt-4 text-lg font-semibold text-slate-900">{item.title}</h3>
-                      <p className="mt-2 text-sm leading-7 text-slate-600">{item.description}</p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {item.tags.map((tag) => (
-                          <span key={tag} className="rounded-full bg-[#f8f4ed] px-3 py-1 text-xs font-semibold text-slate-600">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </div>
+                  <div className={cn(index % 2 === 1 && "lg:order-last")}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9a4e25]">{section.eyebrow}</p>
+                    <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">{section.title}</h2>
+                    <p className="mt-4 max-w-2xl text-sm leading-8 text-slate-600 md:text-base">{section.description}</p>
 
-            <div className={cn(surfaceClass, "p-7")}>
-              <div className="flex items-center gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[#111827] text-white">
-                  <FileStack className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Official Templates</p>
-                  <h3 className="mt-1 text-2xl font-semibold text-slate-900">3 套官方模板</h3>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-3">
-                {templateCards.map((item) => (
-                  <article key={item.name} className="rounded-[24px] border border-stone-200 bg-white/86 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                      <span className="rounded-full bg-[#f7efe6] px-3 py-1 text-xs font-semibold text-[#b85c2c]">{item.alias}</span>
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                      {section.bullets.map((item) => (
+                        <div key={item} className="flex items-center gap-3 rounded-[20px] border border-stone-200 bg-white/86 px-4 py-4 text-sm font-medium text-slate-700">
+                          <Check className="h-4 w-4 shrink-0 text-[#b85c2c]" />
+                          <span>{item}</span>
+                        </div>
+                      ))}
                     </div>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">{item.description}</p>
-                  </article>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+                  </div>
 
-      <section className="px-6 py-10">
-        <div className={siteContainerClass()}>
-          <div className="mb-8 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Pricing</p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">价格仍然保留在首页，但表达更像产品分层</h2>
-            </div>
-            <Link href="/pricing" className="text-sm font-semibold text-[#b85c2c] transition hover:text-slate-900">
-              查看完整价格页
-            </Link>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {homePlans.map((plan) => (
-              <article
-                key={plan.name}
-                className={cn(
-                  surfaceClass,
-                  "p-6",
-                  plan.highlighted && "border-[#d7b49f] bg-[linear-gradient(180deg,rgba(255,249,243,0.96)_0%,rgba(247,239,230,0.96)_100%)]",
-                )}
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-sm font-semibold text-slate-500">{plan.name}</p>
-                  {plan.highlighted ? (
-                    <span className="rounded-full bg-[#111827] px-3 py-1 text-xs font-semibold text-white">推荐</span>
-                  ) : null}
+                  {index % 2 === 0 ? <FeatureVisual type={section.visual} /> : null}
                 </div>
-                <p className="mt-3 text-4xl font-black tracking-tight text-slate-900">{plan.price}</p>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{plan.description}</p>
-                <ul className="mt-6 space-y-2 text-sm text-slate-700">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3">
-                      <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[#b85c2c]" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
               </article>
             ))}
           </div>
         </div>
       </section>
 
+      <section className="px-6 py-8">
+        <div className={siteContainerClass()}>
+          <div className={cn("mx-auto max-w-4xl p-6 md:p-8", sectionShellClass)}>
+            <div className="text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">FAQ</p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">常见问题</h2>
+            </div>
+
+            <div className="mt-8 space-y-3">
+              {faqItems.map((item) => (
+                <details key={item.q} className="rounded-[24px] border border-stone-200 bg-white/88 px-5 py-4">
+                  <summary className="cursor-pointer list-none text-base font-semibold text-slate-900">{item.q}</summary>
+                  <p className="mt-3 pr-6 text-sm leading-7 text-slate-600">{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="px-6 py-12">
-        <div className={cn(siteContainerClass(), "rounded-[32px] border border-stone-300/70 bg-[rgba(255,253,250,0.76)] px-6 py-8 shadow-[0_12px_32px_rgba(15,23,42,0.04)]")}>
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">End-to-End</p>
-          <h2 className="mt-4 text-center text-3xl font-black tracking-tight text-slate-900">少切页面，少重复整理，首页先把整条路径说明白。</h2>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm font-semibold text-slate-500">
-            <span className="rounded-full bg-[#f7efe6] px-4 py-2">PDF 解析</span>
-            <span className="rounded-full bg-[#f7efe6] px-4 py-2">JD 匹配分析</span>
-            <span className="rounded-full bg-[#f7efe6] px-4 py-2">AI 项目改写</span>
-            <span className="rounded-full bg-[#f7efe6] px-4 py-2">身份化制作</span>
-            <span className="rounded-full bg-[#f7efe6] px-4 py-2">模板套版</span>
-            <span className="rounded-full bg-[#111827] px-4 py-2 text-white">PDF 导出</span>
+        <div className={siteContainerClass()}>
+          <div className="rounded-[36px] bg-[linear-gradient(135deg,#111827_0%,#2b180f_62%,#b85c2c_100%)] px-8 py-10 text-white shadow-[0_28px_70px_rgba(15,23,42,0.18)] md:px-10 md:py-12">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">Final CTA</p>
+              <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">先把内容改对，再决定它要长什么样。</h2>
+              <p className="mt-4 text-sm leading-8 text-white/72 md:text-base">
+                无论你是第一次做简历，还是需要针对不同岗位快速改版，都可以从这里直接开始。
+              </p>
+              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <Link
+                  href="/builder"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-[#f7efe6]"
+                >
+                  进入制作页
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/8 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/12"
+                >
+                  查看价格方案
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -441,3 +262,99 @@ export default function LandingPage() {
   );
 }
 
+function FeatureVisual({ type }: { type: "analysis" | "workflow" | "privacy" }) {
+  if (type === "analysis") {
+    return (
+      <div className="rounded-[30px] border border-stone-200 bg-[linear-gradient(180deg,#fffdfa_0%,#f8efe5_100%)] p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+        <div className="rounded-[24px] bg-[#111827] p-5 text-white">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-white/55">
+            <ScanSearch className="h-4 w-4" />
+            <span>JD Analyzer</span>
+          </div>
+          <p className="mt-4 text-xl font-semibold">岗位关键词与经历亮点同时被抽取出来。</p>
+          <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold">
+            {["结果导向", "项目复盘", "协作推进", "数据分析"].map((item) => (
+              <span key={item} className="rounded-full bg-white/12 px-3 py-1">
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {[
+            "识别 JD 中的核心能力词",
+            "对原简历缺失部分给出补充建议",
+            "把经历统一改成结果导向表述",
+            "标出最值得保留的投递亮点",
+          ].map((item) => (
+            <div key={item} className="rounded-[20px] border border-stone-200 bg-white px-4 py-4 text-sm text-slate-700">
+              {item}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "workflow") {
+    return (
+      <div className="rounded-[30px] border border-stone-200 bg-[linear-gradient(180deg,#fffdfa_0%,#f7f1e8_100%)] p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+        <div className="grid gap-3">
+          {[
+            { label: "01", title: "导入旧简历", desc: "支持 PDF 上传与文本粘贴" },
+            { label: "02", title: "贴入岗位 JD", desc: "先分析再改写，不是只排版" },
+            { label: "03", title: "继续模板制作", desc: "优化结果直接带入模板页" },
+            { label: "04", title: "导出 PDF", desc: "完成预览后立即下载成稿" },
+          ].map((item) => (
+            <div key={item.label} className="grid gap-3 rounded-[22px] border border-stone-200 bg-white px-4 py-4 md:grid-cols-[54px_minmax(0,1fr)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-[16px] bg-[#b85c2c] text-sm font-bold text-white">{item.label}</div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                <p className="mt-1 text-sm text-slate-500">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[30px] border border-stone-200 bg-[linear-gradient(180deg,#fffdfa_0%,#f7f0e8_100%)] p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+      <div className="rounded-[24px] border border-[#ead7c8] bg-[#fbf2ea] p-5">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-[#9a4e25]">
+          <LockKeyhole className="h-4 w-4" />
+          <span>Privacy & Export</span>
+        </div>
+        <p className="mt-4 text-xl font-semibold text-slate-900">数据掌控感也被放进首页卖点里。</p>
+        <p className="mt-3 text-sm leading-7 text-slate-600">对求职用户来说，信任感和效率同样重要，所以把本地草稿、导出能力和版本管理都摆在前面。</p>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <PrivacyMiniCard icon={FileText} title="本地草稿" desc="编辑状态持续保存，减少丢失和反复整理。" />
+        <PrivacyMiniCard icon={Download} title="导出能力" desc="完成制作后可直接导出 PDF，用于投递和归档。" />
+      </div>
+    </div>
+  );
+}
+
+function PrivacyMiniCard({
+  icon: Icon,
+  title,
+  desc,
+}: {
+  icon: typeof FileText;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="rounded-[20px] border border-stone-200 bg-white px-4 py-4">
+      <span className="flex h-10 w-10 items-center justify-center rounded-[16px] bg-[#f7efe6] text-[#b85c2c]">
+        <Icon className="h-4 w-4" />
+      </span>
+      <p className="mt-4 text-sm font-semibold text-slate-900">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-500">{desc}</p>
+    </div>
+  );
+}
