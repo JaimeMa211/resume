@@ -15,7 +15,7 @@ export type AuthSession = {
   loginAt: string;
 };
 
-export type AccountPlan = "free" | "pro" | "lifetime";
+export type AccountPlan = "free" | "monthly" | "yearly" | "buyout";
 
 export type AccountMeta = {
   plan: AccountPlan;
@@ -82,7 +82,8 @@ function emitAuthChange(): void {
 
 function getMonthlyQuotaByPlan(plan: AccountPlan): number | null {
   if (plan === "free") return 3;
-  if (plan === "pro") return 120;
+  if (plan === "monthly") return 120;
+  if (plan === "yearly") return 240;
   return null;
 }
 
@@ -96,12 +97,22 @@ function createDefaultAccountMeta(plan: AccountPlan = "free"): AccountMeta {
 }
 
 function normalizeAccountMeta(raw: Partial<AccountMeta> | null | undefined): AccountMeta {
-  const plan = raw?.plan === "pro" || raw?.plan === "lifetime" ? raw.plan : "free";
-  const monthlyQuota = typeof raw?.monthlyQuota === "number" || raw?.monthlyQuota === null ? raw.monthlyQuota : getMonthlyQuotaByPlan(plan);
+  const plan =
+    raw?.plan === "monthly" ||
+    raw?.plan === "yearly" ||
+    raw?.plan === "buyout" ||
+    raw?.plan === "pro" ||
+    raw?.plan === "lifetime"
+      ? raw.plan
+      : "free";
+  const normalizedPlan: AccountPlan =
+    plan === "pro" ? "monthly" : plan === "lifetime" ? "buyout" : plan;
+  const monthlyQuota =
+    typeof raw?.monthlyQuota === "number" || raw?.monthlyQuota === null ? raw.monthlyQuota : getMonthlyQuotaByPlan(normalizedPlan);
   const monthlyUsed = typeof raw?.monthlyUsed === "number" && Number.isFinite(raw.monthlyUsed) ? Math.max(0, Math.floor(raw.monthlyUsed)) : 0;
 
   return {
-    plan,
+    plan: normalizedPlan,
     monthlyQuota,
     monthlyUsed: monthlyQuota === null ? monthlyUsed : Math.min(monthlyUsed, monthlyQuota),
     updatedAt: typeof raw?.updatedAt === "string" ? raw.updatedAt : new Date().toISOString(),
@@ -333,8 +344,9 @@ export function setCurrentPlan(plan: AccountPlan): AccountMeta | null {
 }
 
 export function getPlanDisplayName(plan: AccountPlan): string {
-  if (plan === "pro") return "专业版";
-  if (plan === "lifetime") return "终身版";
+  if (plan === "monthly") return "月付版";
+  if (plan === "yearly") return "年付版";
+  if (plan === "buyout") return "买断版";
   return "免费版";
 }
 

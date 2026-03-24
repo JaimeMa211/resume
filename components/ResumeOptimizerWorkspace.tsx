@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { ChangeEvent, DragEvent, useMemo, useState } from "react";
 
@@ -364,6 +364,7 @@ export default function ResumeOptimizerWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OptimizeResponse | null>(null);
   const [isPreparingBuilder, setIsPreparingBuilder] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"input" | "result">("input");
 
   const canSubmit = useMemo(() => resumeText.trim() && jdText.trim() && !isSubmitting && !isParsingPdf, [resumeText, jdText, isSubmitting, isParsingPdf]);
   const previewData = useMemo(() => (result ? buildPreviewData(result, jdText) : null), [result, jdText]);
@@ -453,6 +454,7 @@ export default function ResumeOptimizerWorkspace() {
         throw new Error(data.error || "简历优化失败");
       }
       setResult(data);
+      setMobileTab("result"); // 移动端自动切换到结果面板
     } catch (err) {
       setError(err instanceof Error ? err.message : "简历优化失败");
       setResult(null);
@@ -502,8 +504,26 @@ export default function ResumeOptimizerWorkspace() {
   const score = clampScore(result?.match_score ?? 0);
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl items-stretch gap-6 px-6 pb-14 text-slate-900 lg:grid-cols-[360px_minmax(0,1fr)]">
-      <aside className="flex h-full flex-col gap-6 rounded-[30px] border border-stone-300/70 bg-[rgba(255,253,250,0.9)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+    <div className="mx-auto w-full max-w-7xl text-slate-900">
+      {/* 移动端 Tab 切换栏 */}
+      <div className="mx-6 mb-4 flex gap-1 rounded-[18px] border border-stone-200 bg-stone-100/80 p-1 lg:hidden">
+        {(["input", "result"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setMobileTab(tab)}
+            className={cn(
+              "flex-1 rounded-[14px] py-2.5 text-sm font-semibold transition",
+              mobileTab === tab ? "bg-white text-slate-900 shadow-sm" : "text-slate-500",
+            )}
+          >
+            {tab === "input" ? "输入简历 / JD" : `优化结果${result ? " ✓" : ""}`}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid items-stretch gap-6 px-6 pb-14 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <aside className={cn("flex h-full flex-col gap-6 rounded-[30px] border border-stone-300/70 bg-[rgba(255,253,250,0.9)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]", mobileTab !== "input" && "hidden lg:flex")}>
         <div>
           <h1 className="text-xl font-bold tracking-tight">AI 简历优化器</h1>
           <p className="mt-2 text-sm text-slate-500">上传 PDF 简历或直接粘贴文本，再输入 JD，系统会生成更适合岗位的表达版本。</p>
@@ -559,7 +579,7 @@ export default function ResumeOptimizerWorkspace() {
         </button>
       </aside>
 
-      <main className="flex min-h-[720px] flex-col overflow-hidden rounded-[30px] border border-stone-300/70 bg-[#FAFAFB] shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+      <main className={cn("flex min-h-[720px] flex-col overflow-hidden rounded-[30px] border border-stone-300/70 bg-[#FAFAFB] shadow-[0_18px_45px_rgba(15,23,42,0.06)]", mobileTab !== "result" && "hidden lg:flex")}>
         <div className="border-b border-stone-200 px-6 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -649,10 +669,10 @@ export default function ResumeOptimizerWorkspace() {
           )}
         </div>
       </main>
+      </div>
     </div>
   );
 }
-
 
 
 

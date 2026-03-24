@@ -1,8 +1,12 @@
+"use client";
+
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import BrandIcon from "@/components/BrandIcon";
 import HeaderAuthActions from "@/components/HeaderAuthActions";
+import { siteContainerClass } from "@/lib/site-layout";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -11,6 +15,8 @@ const navItems = [
   { href: "/builder", label: "制作简历" },
   { href: "/pricing", label: "价格" },
 ];
+
+export { navItems };
 
 export const siteBackgroundClass =
   "bg-[radial-gradient(circle_at_top_left,#f5d6bf_0%,#f9f0e7_34%,#f7f4ef_66%,#f3f6f8_100%)]";
@@ -52,10 +58,6 @@ const siteToneStyles = {
   },
 } as const;
 
-export function siteContainerClass(wide = false) {
-  return cn("mx-auto w-full px-6", wide ? "max-w-[1660px]" : "max-w-7xl");
-}
-
 type SiteTone = keyof typeof siteToneStyles;
 
 type SiteHeaderProps = {
@@ -66,6 +68,19 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ currentPath, wide = false, tone = "default" }: SiteHeaderProps) {
   const toneStyles = siteToneStyles[tone];
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // 打开时禁止 body 滚动
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
 
   return (
     <header className="sticky top-0 z-50 px-4 py-4">
@@ -78,6 +93,7 @@ export function SiteHeader({ currentPath, wide = false, tone = "default" }: Site
           </div>
         </Link>
 
+        {/* PC 端导航 */}
         <nav className="hidden items-center gap-2 lg:flex">
           {navItems.map((item) => {
             const active = item.href === currentPath;
@@ -96,11 +112,67 @@ export function SiteHeader({ currentPath, wide = false, tone = "default" }: Site
           })}
         </nav>
 
-        <HeaderAuthActions
-          className="shrink-0"
-          loginClassName={toneStyles.loginClassName}
-          registerClassName={toneStyles.registerClassName}
-        />
+        <div className="flex items-center gap-2">
+          <HeaderAuthActions
+            className="shrink-0"
+            loginClassName={toneStyles.loginClassName}
+            registerClassName={toneStyles.registerClassName}
+          />
+
+          {/* 汉堡按钮（lg 以下显示） */}
+          <button
+            type="button"
+            aria-label={mobileOpen ? "关闭菜单" : "打开菜单"}
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((o) => !o)}
+            className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-full border transition lg:hidden",
+              mobileOpen
+                ? "border-stone-300 bg-white text-slate-900"
+                : "border-transparent text-slate-600 hover:border-stone-200 hover:bg-white/60",
+            )}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* 移动端全屏遮罩菜单 */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        >
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+        </div>
+      )}
+      <div
+        className={cn(
+          "fixed inset-x-4 top-[88px] z-50 overflow-hidden rounded-[24px] border border-stone-200/80 bg-white/96 shadow-[0_20px_60px_rgba(15,23,42,0.14)] backdrop-blur-xl transition-all duration-300 lg:hidden",
+          mobileOpen ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 -translate-y-3 pointer-events-none",
+        )}
+      >
+        <nav className="flex flex-col gap-1 p-4">
+          {navItems.map((item) => {
+            const active = item.href === currentPath;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center rounded-[16px] px-4 py-3.5 text-[15px] font-semibold transition active:scale-[0.98]",
+                  active
+                    ? "bg-[#f7efe6] text-[#b85c2c]"
+                    : "text-slate-700 hover:bg-stone-100",
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
     </header>
   );

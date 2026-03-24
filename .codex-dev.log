@@ -1,0 +1,16 @@
+
+> resume@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.10.1:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 1310ms
+ GET /pricing 200 in 1855ms (compile: 1165ms, render: 690ms)
+○ Compiling /features ...
+ GET /builder 200 in 3.3s (compile: 2.9s, render: 385ms)
+ GET /features 500 in 6.3s (compile: 5.9s, render: 370ms)
+✓ Finished writing to filesystem cache in 20.5s

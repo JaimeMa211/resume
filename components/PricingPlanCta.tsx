@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { getCurrentSession, subscribeAuthChange, type AuthSession } from "@/lib/auth-client";
+import { getCurrentSession, setCurrentPlan, subscribeAuthChange, type AuthSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
-export type PricingPlanId = "free" | "pro" | "lifetime";
+export type PricingPlanId = "free" | "monthly" | "yearly" | "buyout";
 
 type PricingPlanCtaProps = {
   planId: PricingPlanId;
@@ -19,15 +19,14 @@ type PricingPlanCtaProps = {
 function getCtaHref(planId: PricingPlanId, session: AuthSession | null): string {
   if (session) {
     if (planId === "free") return "/features";
-    if (planId === "pro") return "/features?upgrade=pro";
-    return "/features?upgrade=lifetime";
+    return `/features?upgrade=${encodeURIComponent(planId)}`;
   }
 
   if (planId === "free") {
     return "/register";
   }
 
-  const nextPath = planId === "pro" ? "/features?upgrade=pro" : "/features?upgrade=lifetime";
+  const nextPath = `/features?upgrade=${encodeURIComponent(planId)}`;
   return `/login?next=${encodeURIComponent(nextPath)}`;
 }
 
@@ -52,6 +51,11 @@ export default function PricingPlanCta({
   return (
     <Link
       href={href}
+      onClick={() => {
+        if (session && planId !== "free") {
+          setCurrentPlan(planId);
+        }
+      }}
       className={cn(
         "inline-flex items-center justify-center rounded-full px-4 py-3 text-sm font-semibold transition",
         highlighted ? "bg-[#b85c2c] text-white hover:bg-[#9f4d24]" : "bg-slate-900 text-white hover:bg-[#b85c2c]",

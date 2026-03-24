@@ -12,11 +12,20 @@ export default function ApplyUpgradeFromQuery() {
 
   useEffect(() => {
     const upgrade = searchParams.get("upgrade");
-    if (upgrade !== "pro" && upgrade !== "lifetime") {
+    const nextPlan =
+      upgrade === "monthly" || upgrade === "yearly" || upgrade === "buyout"
+        ? upgrade
+        : upgrade === "pro"
+          ? "monthly"
+          : upgrade === "lifetime"
+            ? "buyout"
+            : null;
+
+    if (!nextPlan) {
       return;
     }
 
-    setCurrentPlan(upgrade);
+    setCurrentPlan(nextPlan);
 
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.delete("upgrade");

@@ -1,11 +1,12 @@
-﻿"use client";
+"use client";
 
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
-import SiteFrame, { siteContainerClass } from "@/components/SiteFrame";
+import SiteFrame from "@/components/SiteFrame";
+import { siteContainerClass } from "@/lib/site-layout";
 import { registerWithPhone } from "@/lib/auth-client";
 
 function getSafeNextPath(raw: string | null): string {
@@ -84,7 +85,7 @@ export default function RegisterPage() {
     <SiteFrame currentPath="/register" mainClassName="pb-6">
       <section className="px-6 pb-12 pt-8">
         <div className={`${siteContainerClass()} grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_480px]`}>
-          <section className="rounded-[34px] border border-stone-300/70 bg-[rgba(255,253,250,0.8)] p-7 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur md:p-10">
+          <section className="order-last rounded-[34px] border border-stone-300/70 bg-[rgba(255,253,250,0.8)] p-7 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur lg:order-none md:p-10">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Create Account</p>
             <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] text-slate-900 md:text-5xl">
               创建账号，

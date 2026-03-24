@@ -7,7 +7,6 @@ import {
   FileStack,
   GraduationCap,
   Languages,
-  Mail,
   Medal,
   PencilLine,
   Plus,
@@ -386,6 +385,7 @@ export default function ResumeCreatorWorkspace() {
   const [saveMessage, setSaveMessage] = useState("正在读取本地草稿...");
   const [sourceText, setSourceText] = useState("");
   const [targetRole, setTargetRole] = useState("");
+  const [mobileBuilderTab, setMobileBuilderTab] = useState<"edit" | "preview">("edit");
   const [jdText, setJdText] = useState("");
   const [notes, setNotes] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1332,10 +1332,61 @@ export default function ResumeCreatorWorkspace() {
             );
           })}
         </div>
+
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]">
+          <div className="rounded-[22px] border border-stone-200 bg-white/82 px-4 py-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f7efe6] text-[#b85c2c]">
+                  <Save className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">草稿状态</p>
+                  <h3 className="mt-1 text-base font-semibold text-slate-900">{hydrated ? "本地草稿已接管当前工作区" : "正在准备本地草稿"}</h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">{saveMessage}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button type="button" variant="outline" className="h-10 rounded-full border-stone-300 bg-white px-4 text-slate-800 hover:bg-stone-100" onClick={resetToStarter}>
+                  <RotateCcw className="h-4 w-4" />
+                  恢复示例
+                </Button>
+                <Button type="button" variant="outline" className="h-10 rounded-full border-red-200 bg-white px-4 text-red-600 hover:bg-red-50" onClick={resetToEmpty}>
+                  <Trash2 className="h-4 w-4" />
+                  清空草稿
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[22px] border border-stone-200/90 bg-[#fcf8f2] px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">编辑提示</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              身份切换只会调整模块优先级和展示顺序，不会删除已填写内容。切换后直接看右侧预览，就能更快判断当前版面是否合理。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 移动端 Tab 切换栏（xl 以下显示） */}
+      <div className="mb-4 flex gap-1 rounded-[18px] border border-stone-200 bg-stone-100/80 p-1 xl:hidden">
+        {(["edit", "preview"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setMobileBuilderTab(tab)}
+            className={cn(
+              "flex-1 rounded-[14px] py-2.5 text-sm font-semibold transition",
+              mobileBuilderTab === tab ? "bg-white text-slate-900 shadow-sm" : "text-slate-500",
+            )}
+          >
+            {tab === "edit" ? "编辑简历" : "预览模板"}
+          </button>
+        ))}
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[240px_minmax(420px,480px)_minmax(0,1fr)] 2xl:grid-cols-[260px_minmax(440px,520px)_minmax(0,1fr)]">
-        <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
+        <aside className={cn("space-y-5 xl:sticky xl:top-24 xl:self-start", mobileBuilderTab !== "edit" && "hidden xl:block")}>
           <WorkspaceCard className="p-5">
             <div className="flex items-center gap-3">
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white">
@@ -1360,42 +1411,6 @@ export default function ResumeCreatorWorkspace() {
               ))}
             </div>
           </WorkspaceCard>
-
-          <WorkspaceCard className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f7efe6] text-[#b85c2c]">
-                <Save className="h-4 w-4" />
-              </span>
-              <div>
-                <h3 className="text-base font-semibold text-slate-900">草稿状态</h3>
-                <p className="mt-1 text-sm leading-6 text-slate-500">{saveMessage}</p>
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Button type="button" variant="outline" className="h-10 rounded-full border-stone-300 bg-white px-4 text-slate-800 hover:bg-stone-100" onClick={resetToStarter}>
-                <RotateCcw className="h-4 w-4" />
-                恢复示例
-              </Button>
-              <Button type="button" variant="outline" className="h-10 rounded-full border-red-200 bg-white px-4 text-red-600 hover:bg-red-50" onClick={resetToEmpty}>
-                <Trash2 className="h-4 w-4" />
-                清空草稿
-              </Button>
-            </div>
-          </WorkspaceCard>
-
-          <WorkspaceCard className="overflow-hidden">
-            <div className="border-b border-stone-200 bg-[#f7efe6] px-5 py-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <Mail className="h-4 w-4 text-[#b85c2c]" />
-                编排提醒
-              </div>
-            </div>
-            <div className="space-y-3 px-5 py-4 text-sm leading-6 text-slate-600">
-              <p>身份按钮只控制模块优先级和显示顺序，不会删除你已经填写的内容。</p>
-              <p>学生阶段尽量用教育、实习、项目和校园经历证明能力；社招阶段则要让工作经历和项目结果站到前面。</p>
-              <p>右侧预览与 PDF 导出都使用同一套身份策略，切换后可以立即检查版面是否合理。</p>
-            </div>
-          </WorkspaceCard>
         </aside>
 
         <main className="builder-editor-follow xl:min-w-[420px]">
@@ -1409,6 +1424,4 @@ export default function ResumeCreatorWorkspace() {
     </div>
   );
 }
-
-
 

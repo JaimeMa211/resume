@@ -11,7 +11,8 @@ import {
 import Link from "next/link";
 
 import HomeHighlightPreview from "@/components/HomeHighlightPreview";
-import SiteFrame, { siteContainerClass } from "@/components/SiteFrame";
+import SiteFrame from "@/components/SiteFrame";
+import { siteContainerClass } from "@/lib/site-layout";
 import { cn } from "@/lib/utils";
 
 const trustIndicators = ["AI 定向优化", "本地草稿保存", "3 套模板联动", "PDF 导出"];
@@ -232,24 +233,24 @@ export default function LandingPage() {
 
       <section className="px-6 py-12">
         <div className={siteContainerClass()}>
-          <div className="rounded-[36px] bg-[linear-gradient(135deg,#111827_0%,#2b180f_62%,#b85c2c_100%)] px-8 py-10 text-white shadow-[0_28px_70px_rgba(15,23,42,0.18)] md:px-10 md:py-12">
+          <div className="rounded-[36px] border border-stone-300/70 bg-[linear-gradient(135deg,rgba(255,250,245,0.96)_0%,rgba(247,239,230,0.96)_58%,rgba(241,232,223,0.98)_100%)] px-8 py-10 text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.08)] md:px-10 md:py-12">
             <div className="mx-auto max-w-3xl text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">Final CTA</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9a6a4a]">Final CTA</p>
               <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">先把内容改对，再决定它要长什么样。</h2>
-              <p className="mt-4 text-sm leading-8 text-white/72 md:text-base">
+              <p className="mt-4 text-sm leading-8 text-slate-600 md:text-base">
                 无论你是第一次做简历，还是需要针对不同岗位快速改版，都可以从这里直接开始。
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Link
                   href="/builder"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-[#f7efe6]"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#b85c2c] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#9f4d24]"
                 >
                   进入制作页
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/pricing"
-                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/8 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/12"
+                  className="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white/70 px-6 py-3 text-sm font-semibold text-slate-800 transition hover:bg-white"
                 >
                   查看价格方案
                 </Link>
