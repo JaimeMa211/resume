@@ -16,12 +16,20 @@ export type AuthSession = {
 };
 
 export type AccountPlan = "free" | "monthly" | "yearly" | "buyout";
+type LegacyAccountPlan = AccountPlan | "pro" | "lifetime";
 
 export type AccountMeta = {
   plan: AccountPlan;
   monthlyQuota: number | null;
   monthlyUsed: number;
   updatedAt: string;
+};
+
+type RawAccountMeta = {
+  plan?: LegacyAccountPlan;
+  monthlyQuota?: number | null;
+  monthlyUsed?: number;
+  updatedAt?: string;
 };
 
 type RegisterPayload = {
@@ -96,7 +104,7 @@ function createDefaultAccountMeta(plan: AccountPlan = "free"): AccountMeta {
   };
 }
 
-function normalizeAccountMeta(raw: Partial<AccountMeta> | null | undefined): AccountMeta {
+function normalizeAccountMeta(raw: RawAccountMeta | null | undefined): AccountMeta {
   const plan =
     raw?.plan === "monthly" ||
     raw?.plan === "yearly" ||
