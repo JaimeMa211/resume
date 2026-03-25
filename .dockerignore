@@ -1,0 +1,12 @@
+.git
+.gitignore
+.next
+.codex
+.codebuddy
+node_modules
+npm-debug.log*
+.env
+.env.*
+.DS_Store
+*.log
+tsconfig.tsbuildinfo
