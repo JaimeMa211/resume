@@ -25,7 +25,7 @@ export default function ApplyUpgradeFromQuery() {
       return;
     }
 
-    setCurrentPlan(nextPlan);
+    void setCurrentPlan(nextPlan);
 
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.delete("upgrade");

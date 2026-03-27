@@ -34,11 +34,19 @@ if [[ ! -f "${ENV_FILE}" ]]; then
   exit 1
 fi
 
+set -a
+# shellcheck disable=SC1090
+source "${ENV_FILE}"
+set +a
+
 echo "==> Pulling latest code"
 git pull origin "${BRANCH}"
 
 echo "==> Building Docker image"
-docker build -t "${IMAGE_NAME}" .
+docker build \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-}" \
+  --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}" \
+  -t "${IMAGE_NAME}" .
 
 if docker ps -a --format '{{.Names}}' | grep -Fxq "${CONTAINER_NAME}"; then
   echo "==> Replacing existing container"

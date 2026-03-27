@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 import SiteFrame from "@/components/SiteFrame";
+import { getCurrentSession, initializeAuth, registerWithPhone } from "@/lib/auth-client";
+import { isValidEmail, isValidMainlandPhone, normalizeEmail, normalizePhone } from "@/lib/auth-identity";
 import { siteContainerClass } from "@/lib/site-layout";
-import { registerWithPhone } from "@/lib/auth-client";
 
 function getSafeNextPath(raw: string | null): string {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
@@ -18,7 +19,7 @@ function getSafeNextPath(raw: string | null): string {
 }
 
 function getPasswordStrength(password: string): string {
-  if (password.length < 8) return "弱";
+  if (password.length < 6) return "弱";
 
   const rules = [/[A-Z]/, /[a-z]/, /\d/, /[^A-Za-z\d]/];
   const passed = rules.filter((rule) => rule.test(password)).length;
@@ -28,9 +29,66 @@ function getPasswordStrength(password: string): string {
   return "强";
 }
 
+function getRegisterErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "注册失败，请稍后重试。";
+  }
+
+  const message = error.message.trim();
+  if (!message) {
+    return "注册失败，请稍后重试。";
+  }
+
+  if (message.includes("该手机号已注册")) {
+    return "该手机号已注册，请直接登录或更换手机号。";
+  }
+
+  if (message.includes("该邮箱已注册")) {
+    return "该邮箱已注册，请直接登录或更换邮箱。";
+  }
+
+  if (message.includes("密码至少")) {
+    return "密码长度不足，请输入至少 6 位密码。";
+  }
+
+  if (message.includes("请输入有效的 11 位手机号")) {
+    return "手机号格式不正确，请输入有效的 11 位中国大陆手机号。";
+  }
+
+  if (message.includes("请输入有效的邮箱")) {
+    return "邮箱格式不正确，请输入有效的邮箱地址。";
+  }
+
+  if (message.includes("昵称至少需要")) {
+    return "昵称至少需要 2 个字符。";
+  }
+
+  if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
+    return "网络连接失败，请检查网络后重试。";
+  }
+
+  if (message.includes("Supabase 中缺少 profiles 表")) {
+    return "Supabase 中缺少 profiles 表，请先在 SQL Editor 执行 supabase/profiles.sql。";
+  }
+
+  if (message.includes("profiles 表缺少")) {
+    return message;
+  }
+
+  if (message.includes("账户资料表访问失败")) {
+    return message;
+  }
+
+  if (message.includes("Supabase")) {
+    return "注册服务暂时不可用，请检查 Supabase 配置后重试。";
+  }
+
+  return message;
+}
+
 const unlockItems = [
   "每月 3 次免费简历优化",
-  "3 套官方模板实时套版预览",
+  "3 套官方模板实时预览",
   "岗位匹配分与优化建议摘要",
 ];
 
@@ -40,6 +98,7 @@ export default function RegisterPage() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agree, setAgree] = useState(true);
@@ -54,28 +113,68 @@ export default function RegisterPage() {
     setNextPath(getSafeNextPath(params.get("next")));
   }, []);
 
+  useEffect(() => {
+    const syncSession = () => {
+      const session = getCurrentSession();
+      if (session) {
+        router.replace(nextPath);
+      }
+    };
+
+    syncSession();
+    void initializeAuth().then(syncSession).catch(() => undefined);
+  }, [router, nextPath]);
+
+  function clearError() {
+    if (error) {
+      setError(null);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
-    if (!agree) {
-      setError("请先同意服务条款与隐私政策");
+    const normalizedPhone = normalizePhone(phone);
+    const normalizedEmail = normalizeEmail(email);
+
+    if (name.trim().length < 2) {
+      setError("昵称至少需要 2 个字符。");
+      return;
+    }
+
+    if (!isValidMainlandPhone(normalizedPhone)) {
+      setError("手机号格式不正确，请输入有效的 11 位中国大陆手机号。");
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      setError("邮箱格式不正确，请输入有效的邮箱地址。");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("密码长度不足，请输入至少 6 位密码。");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("两次输入的密码不一致");
+      setError("两次输入的密码不一致，请重新确认。");
+      return;
+    }
+
+    if (!agree) {
+      setError("请先勾选并同意服务条款与隐私政策。");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      await registerWithPhone({ name, phone, password });
+      await registerWithPhone({ name, phone: normalizedPhone, email: normalizedEmail, password });
       router.push(nextPath);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "注册失败，请重试";
-      setError(message);
+      setError(getRegisterErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -88,13 +187,15 @@ export default function RegisterPage() {
           <section className="order-last rounded-[34px] border border-stone-300/70 bg-[rgba(255,253,250,0.8)] p-7 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur lg:order-none md:p-10">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Create Account</p>
             <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] text-slate-900 md:text-5xl">
-              创建账号，
-              <span className="block text-[#b85c2c]">把你的简历流程放进同一工作台。</span>
+              创建账户，
+              <span className="block text-[#b85c2c]">把你的简历流程放进同一个工作台。</span>
             </h1>
-            <p className="mt-5 max-w-xl text-base leading-8 text-slate-600">注册后即可体验职位匹配评分、关键词补全、模板联动和 PDF 导出能力。</p>
+            <p className="mt-5 max-w-xl text-base leading-8 text-slate-600">
+              注册后即可体验岗位匹配评分、关键词补全、模板联动和 PDF 导出能力。邮箱会作为你的找回密码邮箱，登录入口仍然保持手机号。
+            </p>
 
             <div className="mt-8 rounded-[28px] border border-stone-200 bg-white/80 p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-              <p className="text-sm font-semibold text-slate-900">新用户立即解锁</p>
+              <p className="text-sm font-semibold text-slate-900">新用户立刻解锁</p>
               <ul className="mt-4 space-y-2 text-sm leading-7 text-slate-600">
                 {unlockItems.map((item) => (
                   <li key={item}>• {item}</li>
@@ -121,7 +222,10 @@ export default function RegisterPage() {
                   required
                   minLength={2}
                   value={name}
-                  onChange={(event) => setName(event.target.value)}
+                  onChange={(event) => {
+                    clearError();
+                    setName(event.target.value);
+                  }}
                   placeholder="请输入昵称"
                   className="w-full rounded-[22px] border border-stone-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#b85c2c] focus:ring-4 focus:ring-[#f3d5c2]/60"
                 />
@@ -134,10 +238,30 @@ export default function RegisterPage() {
                   required
                   autoComplete="tel"
                   value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
+                  onChange={(event) => {
+                    clearError();
+                    setPhone(event.target.value);
+                  }}
                   placeholder="请输入 11 位手机号"
                   className="w-full rounded-[22px] border border-stone-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#b85c2c] focus:ring-4 focus:ring-[#f3d5c2]/60"
                 />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-slate-700">找回邮箱</span>
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => {
+                    clearError();
+                    setEmail(event.target.value);
+                  }}
+                  placeholder="请输入常用邮箱"
+                  className="w-full rounded-[22px] border border-stone-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#b85c2c] focus:ring-4 focus:ring-[#f3d5c2]/60"
+                />
+                <p className="mt-2 text-xs text-slate-500">用于找回密码和接收账号安全通知。</p>
               </label>
 
               <label className="block">
@@ -146,11 +270,14 @@ export default function RegisterPage() {
                   <input
                     type={showPassword ? "text" : "password"}
                     required
-                    minLength={8}
+                    minLength={6}
                     autoComplete="new-password"
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="至少 8 位，建议包含大小写和数字"
+                    onChange={(event) => {
+                      clearError();
+                      setPassword(event.target.value);
+                    }}
+                    placeholder="至少 6 位，建议包含大小写和数字"
                     className="w-full rounded-[22px] border border-stone-200 bg-white px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#b85c2c] focus:ring-4 focus:ring-[#f3d5c2]/60"
                   />
                   <button
@@ -170,10 +297,13 @@ export default function RegisterPage() {
                 <input
                   type={showPassword ? "text" : "password"}
                   required
-                  minLength={8}
+                  minLength={6}
                   autoComplete="new-password"
                   value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  onChange={(event) => {
+                    clearError();
+                    setConfirmPassword(event.target.value);
+                  }}
                   placeholder="请再次输入密码"
                   className="w-full rounded-[22px] border border-stone-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#b85c2c] focus:ring-4 focus:ring-[#f3d5c2]/60"
                 />
@@ -183,13 +313,23 @@ export default function RegisterPage() {
                 <input
                   type="checkbox"
                   checked={agree}
-                  onChange={(event) => setAgree(event.target.checked)}
+                  onChange={(event) => {
+                    clearError();
+                    setAgree(event.target.checked);
+                  }}
                   className="h-4 w-4 rounded border-stone-300 text-[#b85c2c] focus:ring-[#b85c2c]"
                 />
                 我已阅读并同意服务条款与隐私政策
               </label>
 
-              {error ? <div className="rounded-[20px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+              {error ? (
+                <div
+                  className="rounded-[20px] border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
+                  role="alert"
+                >
+                  {error}
+                </div>
+              ) : null}
 
               <button
                 type="submit"
@@ -199,8 +339,6 @@ export default function RegisterPage() {
                 {isSubmitting ? "注册中..." : "创建账户并进入工作台"}
               </button>
             </form>
-
-            <p className="mt-5 text-xs leading-6 text-slate-500">当前注册功能用于本地演示环境，账号信息会保存在当前浏览器中。</p>
           </section>
         </div>
       </section>

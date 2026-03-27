@@ -9,6 +9,7 @@ import {
   getCurrentSession,
   getPlanDisplayName,
   getQuotaDisplay,
+  initializeAuth,
   logout,
   subscribeAuthChange,
   type AccountMeta,
@@ -50,17 +51,21 @@ export default function HeaderAuthActions({ className, loginClassName, registerC
     };
 
     syncAuthState();
+    void initializeAuth().then(syncAuthState).catch(() => undefined);
     return subscribeAuthChange(syncAuthState);
   }, []);
 
-  function handleLogout() {
+  async function handleLogout() {
     setIsLoggingOut(true);
-    logout();
-    setSession(null);
-    setAccountMeta(null);
-    router.push("/");
-    router.refresh();
-    setIsLoggingOut(false);
+    try {
+      await logout();
+      setSession(null);
+      setAccountMeta(null);
+      router.push("/");
+      router.refresh();
+    } finally {
+      setIsLoggingOut(false);
+    }
   }
 
   if (session) {
@@ -91,6 +96,7 @@ export default function HeaderAuthActions({ className, loginClassName, registerC
             <div className="rounded-[20px] border border-stone-100 bg-[#f7f1e8] px-3 py-3">
               <p className="text-sm font-bold text-slate-900">{session.name}</p>
               <p className="mt-1 text-xs text-slate-500">{session.phone}</p>
+              <p className="mt-1 text-xs text-slate-500">{session.email}</p>
               <p className="mt-1 text-xs text-slate-500">最近登录：{formatLoginTime(session.loginAt)}</p>
             </div>
 
@@ -105,6 +111,21 @@ export default function HeaderAuthActions({ className, loginClassName, registerC
                   <p className="text-sm font-semibold text-slate-800">{quotaText}</p>
                 </div>
               </div>
+            </div>
+
+            <div className="mt-3 grid gap-2">
+              <Link
+                href="/account"
+                className="inline-flex w-full items-center justify-center rounded-full border border-stone-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-[#f8f4ed]"
+              >
+                账户中心
+              </Link>
+              <Link
+                href="/forgot-password"
+                className="inline-flex w-full items-center justify-center rounded-full border border-stone-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-[#f8f4ed]"
+              >
+                找回密码
+              </Link>
             </div>
 
             <button

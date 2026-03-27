@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { getCurrentSession, setCurrentPlan, subscribeAuthChange, type AuthSession } from "@/lib/auth-client";
+import { getCurrentSession, initializeAuth, setCurrentPlan, subscribeAuthChange, type AuthSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
 export type PricingPlanId = "free" | "monthly" | "yearly" | "buyout";
@@ -40,9 +40,13 @@ export default function PricingPlanCta({
   const [session, setSession] = useState<AuthSession | null>(null);
 
   useEffect(() => {
-    return subscribeAuthChange(() => {
+    const syncSession = () => {
       setSession(getCurrentSession());
-    });
+    };
+
+    syncSession();
+    void initializeAuth().then(syncSession).catch(() => undefined);
+    return subscribeAuthChange(syncSession);
   }, []);
 
   const href = getCtaHref(planId, session);
@@ -53,7 +57,7 @@ export default function PricingPlanCta({
       href={href}
       onClick={() => {
         if (session && planId !== "free") {
-          setCurrentPlan(planId);
+          void setCurrentPlan(planId);
         }
       }}
       className={cn(
