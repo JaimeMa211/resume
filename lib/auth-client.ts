@@ -92,9 +92,9 @@ function formatPhoneForDisplay(raw: string | null | undefined): string {
 }
 
 function getMonthlyQuotaByPlan(plan: AccountPlan): number | null {
-  if (plan === "free") return 3;
-  if (plan === "monthly") return 120;
-  if (plan === "yearly") return 240;
+  if (plan === "free") return 1;
+  if (plan === "monthly") return 10;
+  if (plan === "yearly") return 50;
   return null;
 }
 

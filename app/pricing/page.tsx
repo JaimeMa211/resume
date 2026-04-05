@@ -1,6 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import PricingPlanCta from "@/components/PricingPlanCta";
+import RedeemCodeDialog from "@/components/RedeemCodeDialog";
+import {
+  getCurrentAccountMeta,
+  getCurrentSession,
+  subscribeAuthChange,
+  type AuthSession,
+  type AccountMeta,
+} from "@/lib/auth-client";
 import SiteFrame from "@/components/SiteFrame";
 import { siteContainerClass } from "@/lib/site-layout";
 
@@ -27,7 +38,7 @@ const plans: Plan[] = [
     hint: "先试用",
     description: "跑通上传、优化、套版和导出。",
     note: "无需绑卡",
-    features: ["3 次 / 月 AI 优化", "基础岗位匹配", "3 套模板", "PDF 导出"],
+    features: ["1 次 / 月 AI 优化", "基础岗位匹配", "3 套模板", "PDF 导出"],
     cta: "免费开始",
   },
   {
@@ -37,7 +48,7 @@ const plans: Plan[] = [
     cycle: "/ 月",
     hint: "短期冲刺",
     description: "适合一段时间内高频改简历、密集投递。",
-    features: ["120 次 / 月 AI 优化", "全部模板", "岗位定制改写", "优先升级入口"],
+    features: ["10 次 / 月 AI 优化", "全部模板", "岗位定制改写", "优先升级入口"],
     cta: "切到月付版",
   },
   {
@@ -50,7 +61,7 @@ const plans: Plan[] = [
     badge: "推荐",
     note: "约 ¥6.6 / 月",
     highlighted: true,
-    features: ["240 次 / 月 AI 优化", "全部模板", "岗位定制改写", "优先升级入口"],
+    features: ["50 次 / 月 AI 优化", "全部模板", "岗位定制改写", "优先升级入口"],
     cta: "切到年付版",
   },
   {
@@ -68,7 +79,7 @@ const plans: Plan[] = [
 
 const compareRows = [
   { label: "计费方式", free: "免费", monthly: "按月", yearly: "按年", buyout: "一次买断" },
-  { label: "优化额度", free: "3 次 / 月", monthly: "120 次 / 月", yearly: "240 次 / 月", buyout: "不限次数" },
+  { label: "优化额度", free: "1 次 / 月", monthly: "10 次 / 月", yearly: "50 次 / 月", buyout: "不限次数" },
   { label: "模板范围", free: "3 套", monthly: "全部模板", yearly: "全部模板", buyout: "全部模板 + 更新" },
   { label: "岗位定制", free: "基础", monthly: "支持", yearly: "支持", buyout: "支持" },
 ];
@@ -91,6 +102,19 @@ const faqs = [
 const panelClass = "rounded-[30px] border border-stone-200 bg-white";
 
 export default function PricingPage() {
+  const [redeemOpen, setRedeemOpen] = useState(false);
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [accountMeta, setAccountMeta] = useState<AccountMeta | null>(null);
+
+  useEffect(() => {
+    return subscribeAuthChange(() => {
+      setSession(getCurrentSession());
+      setAccountMeta(getCurrentAccountMeta());
+    });
+  }, []);
+
+  const showRedeemSection = session && accountMeta?.plan === "free";
+
   return (
     <SiteFrame currentPath="/pricing" mainClassName="pb-8">
       <section className="px-6 pb-8 pt-10">
@@ -255,6 +279,25 @@ export default function PricingPage() {
           </div>
         </div>
       </section>
+
+      {showRedeemSection && (
+        <section id="redeem" className="px-6 pb-12">
+          <div className={siteContainerClass()}>
+            <div className="rounded-[30px] border border-stone-200 bg-white px-8 py-8 text-center">
+              <h2 className="text-xl font-bold text-slate-900">已有兑换码？</h2>
+              <p className="mt-2 text-sm text-slate-500">输入兑换码即可升级会员，无需支付</p>
+              <button
+                onClick={() => setRedeemOpen(true)}
+                className="mt-6 rounded-full bg-[#b85c2c] px-8 py-3 text-sm font-semibold text-white transition hover:bg-[#9f4d24]"
+              >
+                输入兑换码
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <RedeemCodeDialog open={redeemOpen} onOpenChange={setRedeemOpen} />
     </SiteFrame>
   );
 }

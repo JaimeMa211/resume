@@ -1,8 +1,15 @@
 "use client";
 
-import { ChangeEvent, DragEvent, useMemo, useState } from "react";
+import { ChangeEvent, DragEvent, useEffect, useMemo, useState } from "react";
 
 import type { ResumeData, ResumePersona } from "@/components/templates/types";
+import {
+  getCurrentAccountMeta,
+  getCurrentSession,
+  subscribeAuthChange,
+  type AccountMeta,
+  type AuthSession,
+} from "@/lib/auth-client";
 import { BUILDER_DRAFT_STORAGE_KEY, normalizeResumeData } from "@/lib/resume-data";
 import { cn } from "@/lib/utils";
 
@@ -365,6 +372,15 @@ export default function ResumeOptimizerWorkspace() {
   const [result, setResult] = useState<OptimizeResponse | null>(null);
   const [isPreparingBuilder, setIsPreparingBuilder] = useState(false);
   const [mobileTab, setMobileTab] = useState<"input" | "result">("input");
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [accountMeta, setAccountMeta] = useState<AccountMeta | null>(null);
+
+  useEffect(() => {
+    return subscribeAuthChange(() => {
+      setSession(getCurrentSession());
+      setAccountMeta(getCurrentAccountMeta());
+    });
+  }, []);
 
   const canSubmit = useMemo(() => resumeText.trim() && jdText.trim() && !isSubmitting && !isParsingPdf, [resumeText, jdText, isSubmitting, isParsingPdf]);
   const previewData = useMemo(() => (result ? buildPreviewData(result, jdText) : null), [result, jdText]);
@@ -441,6 +457,11 @@ export default function ResumeOptimizerWorkspace() {
   async function handleOptimize() {
     if (!canSubmit) return;
 
+    if (accountMeta && accountMeta.monthlyQuota !== null && accountMeta.monthlyUsed >= accountMeta.monthlyQuota) {
+      setError(`本月优化次数已用完（${accountMeta.monthlyUsed}/${accountMeta.monthlyQuota}次），请升级会员获取更多额度。`);
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
     try {
@@ -454,6 +475,7 @@ export default function ResumeOptimizerWorkspace() {
         throw new Error(data.error || "简历优化失败");
       }
       setResult(data);
+      setAccountMeta((prev) => prev ? { ...prev, monthlyUsed: prev.monthlyUsed + 1 } : null);
       setMobileTab("result"); // 移动端自动切换到结果面板
     } catch (err) {
       setError(err instanceof Error ? err.message : "简历优化失败");
@@ -573,6 +595,12 @@ export default function ResumeOptimizerWorkspace() {
         </section>
 
         {error ? <div className="rounded-[20px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+
+        {session && accountMeta && accountMeta.monthlyQuota !== null ? (
+          <p className="mt-2 text-center text-xs text-slate-500">
+            本月剩余额度：{Math.max(0, accountMeta.monthlyQuota - accountMeta.monthlyUsed)} / {accountMeta.monthlyQuota} 次
+          </p>
+        ) : null}
 
         <button type="button" onClick={handleOptimize} disabled={!canSubmit} className={cn("mt-auto w-full rounded-full px-4 py-3 font-semibold text-white transition", canSubmit ? "bg-[#111827] shadow-[0_14px_30px_rgba(17,24,39,0.18)] hover:opacity-90" : "cursor-not-allowed bg-slate-300")}>
           {isSubmitting ? "正在优化中..." : "优化简历"}
