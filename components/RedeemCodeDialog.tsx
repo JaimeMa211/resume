@@ -72,7 +72,7 @@ export default function RedeemCodeDialog({ open, onOpenChange }: RedeemCodeDialo
       <div className="absolute inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
       <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white px-6 py-8 shadow-xl">
         <h2 className="text-xl font-bold text-slate-900">输入兑换码</h2>
-        <p className="mt-2 text-sm text-slate-500">输入您获得的兑换码以升级会员</p>
+        <p className="mt-2 text-sm text-slate-500">请输入您获得的兑换码</p>
 
         <input
           type="text"
@@ -81,7 +81,7 @@ export default function RedeemCodeDialog({ open, onOpenChange }: RedeemCodeDialo
             setCode(e.target.value.toUpperCase());
             setError("");
           }}
-          placeholder="例如：YEARLY-VIP"
+          placeholder="请输入兑换码"
           className={cn(
             "mt-6 w-full rounded-xl border border-stone-200 px-4 py-3 text-center text-lg font-mono uppercase tracking-wider",
             "placeholder:text-stone-300 placeholder:normal-case placeholder:tracking-normal",

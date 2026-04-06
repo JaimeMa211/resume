@@ -6,15 +6,15 @@ type RedeemCodeEntry = {
 };
 
 const REDEEM_CODES: Record<string, RedeemCodeEntry> = {
-  "VIP-MONTHLY": {
+  "X9K2-MV7Q-PL4N": {
     plan: "monthly",
     description: "月付版 (10次/月)",
   },
-  "VIP-YEARLY": {
+  "R3T8-WN5X-CB6Z": {
     plan: "yearly",
     description: "年付版 (50次/月)",
   },
-  "VIP-BUYOUT": {
+  "J7H1-KP9L-NF4W": {
     plan: "buyout",
     description: "买断版 (不限次数)",
   },
