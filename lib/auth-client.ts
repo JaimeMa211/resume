@@ -68,27 +68,43 @@ function hashPassword(password: string): string {
 
 function getUsers(): Record<string, { user: AuthSession; passwordHash: string; accountMeta: AccountMeta }> {
   if (!isBrowser()) return {};
-  const data = localStorage.getItem(STORAGE_KEY_USERS);
-  return data ? JSON.parse(data) : {};
+  try {
+    const data = localStorage.getItem(STORAGE_KEY_USERS);
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
 }
 
 function saveUsers(users: Record<string, { user: AuthSession; passwordHash: string; accountMeta: AccountMeta }>): void {
   if (!isBrowser()) return;
-  localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+  try {
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+  } catch {
+    // Storage full or unavailable
+  }
 }
 
 function getSession(): AuthSession | null {
   if (!isBrowser()) return null;
-  const data = localStorage.getItem(STORAGE_KEY_SESSION);
-  return data ? JSON.parse(data) : null;
+  try {
+    const data = localStorage.getItem(STORAGE_KEY_SESSION);
+    return data ? JSON.parse(data) : null;
+  } catch {
+    return null;
+  }
 }
 
 function saveSession(session: AuthSession | null): void {
   if (!isBrowser()) return;
-  if (session) {
-    localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(session));
-  } else {
-    localStorage.removeItem(STORAGE_KEY_SESSION);
+  try {
+    if (session) {
+      localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(session));
+    } else {
+      localStorage.removeItem(STORAGE_KEY_SESSION);
+    }
+  } catch {
+    // Storage full or unavailable
   }
 }
 
