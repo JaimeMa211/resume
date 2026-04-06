@@ -67,22 +67,6 @@ function getRegisterErrorMessage(error: unknown): string {
     return "网络连接失败，请检查网络后重试。";
   }
 
-  if (message.includes("Supabase 中缺少 profiles 表")) {
-    return "Supabase 中缺少 profiles 表，请先在 SQL Editor 执行 supabase/profiles.sql。";
-  }
-
-  if (message.includes("profiles 表缺少")) {
-    return message;
-  }
-
-  if (message.includes("账户资料表访问失败")) {
-    return message;
-  }
-
-  if (message.includes("Supabase")) {
-    return "注册服务暂时不可用，请检查 Supabase 配置后重试。";
-  }
-
   return message;
 }
 

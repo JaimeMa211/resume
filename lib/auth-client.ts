@@ -1,9 +1,6 @@
 "use client";
 
-import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
-
 import { isValidEmail, isValidMainlandPhone, normalizeEmail, normalizePhone } from "@/lib/auth-identity";
-import { clearAuthStoragePersistence, createClient, setAuthStoragePersistence } from "@/lib/supabase/client";
 
 export type AuthSession = {
   userId: string;
@@ -14,7 +11,6 @@ export type AuthSession = {
 };
 
 export type AccountPlan = "free" | "monthly" | "yearly" | "buyout";
-type LegacyAccountPlan = AccountPlan | "pro" | "lifetime";
 
 export type AccountMeta = {
   plan: AccountPlan;
@@ -44,51 +40,61 @@ type ChangePasswordPayload = {
   password: string;
 };
 
-type RawAccountMeta = {
-  plan?: LegacyAccountPlan | string | null;
-  monthly_quota?: number | null;
-  monthly_used?: number | null;
-  updated_at?: string | null;
-};
-
-type AuthApiSessionPayload = {
-  accessToken: string;
-  refreshToken: string;
-};
-
-type RegisterApiPayload = {
-  ok?: boolean;
-  session?: AuthApiSessionPayload;
-};
-
 const AUTH_CHANGE_EVENT = "resume-auth-change";
+const STORAGE_KEY_USERS = "resume_users";
+const STORAGE_KEY_SESSION = "resume_session";
 
 let currentSession: AuthSession | null = null;
 let currentAccountMeta: AccountMeta | null = null;
 let initPromise: Promise<void> | null = null;
-let authSubscriptionStarted = false;
 
 function isBrowser(): boolean {
   return typeof window !== "undefined";
 }
 
-function isSupabaseConfigured(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+function generateUserId(): string {
+  return 'user_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 15);
 }
 
-function assertSupabaseConfigured(): void {
-  if (!isSupabaseConfigured()) {
-    throw new Error("尚未配置 Supabase 环境变量，请先补全 .env.local");
+function hashPassword(password: string): string {
+  let hash = 0;
+  for (let i = 0; i < password.length; i++) {
+    const char = password.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return 'pwd_' + Math.abs(hash).toString(36) + password.length.toString(36);
+}
+
+function getUsers(): Record<string, { user: AuthSession; passwordHash: string; accountMeta: AccountMeta }> {
+  if (!isBrowser()) return {};
+  const data = localStorage.getItem(STORAGE_KEY_USERS);
+  return data ? JSON.parse(data) : {};
+}
+
+function saveUsers(users: Record<string, { user: AuthSession; passwordHash: string; accountMeta: AccountMeta }>): void {
+  if (!isBrowser()) return;
+  localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+}
+
+function getSession(): AuthSession | null {
+  if (!isBrowser()) return null;
+  const data = localStorage.getItem(STORAGE_KEY_SESSION);
+  return data ? JSON.parse(data) : null;
+}
+
+function saveSession(session: AuthSession | null): void {
+  if (!isBrowser()) return;
+  if (session) {
+    localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(session));
+  } else {
+    localStorage.removeItem(STORAGE_KEY_SESSION);
   }
 }
 
 function emitAuthChange(): void {
   if (!isBrowser()) return;
   window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
-}
-
-function formatPhoneForDisplay(raw: string | null | undefined): string {
-  return normalizePhone(raw ?? "");
 }
 
 function getMonthlyQuotaByPlan(plan: AccountPlan): number | null {
@@ -107,142 +113,32 @@ function createDefaultAccountMeta(plan: AccountPlan = "free"): AccountMeta {
   };
 }
 
-function normalizeAccountMeta(raw: RawAccountMeta | null | undefined): AccountMeta {
-  const plan =
-    raw?.plan === "monthly" ||
-    raw?.plan === "yearly" ||
-    raw?.plan === "buyout" ||
-    raw?.plan === "pro" ||
-    raw?.plan === "lifetime"
-      ? raw.plan
-      : "free";
-
-  const normalizedPlan: AccountPlan =
-    plan === "pro" ? "monthly" : plan === "lifetime" ? "buyout" : plan;
-  const monthlyQuota =
-    typeof raw?.monthly_quota === "number" || raw?.monthly_quota === null
-      ? raw.monthly_quota
-      : getMonthlyQuotaByPlan(normalizedPlan);
-  const monthlyUsed =
-    typeof raw?.monthly_used === "number" && Number.isFinite(raw.monthly_used)
-      ? Math.max(0, Math.floor(raw.monthly_used))
-      : 0;
-
-  return {
-    plan: normalizedPlan,
-    monthlyQuota,
-    monthlyUsed: monthlyQuota === null ? monthlyUsed : Math.min(monthlyUsed, monthlyQuota),
-    updatedAt: typeof raw?.updated_at === "string" ? raw.updated_at : new Date().toISOString(),
-  };
-}
-
-function mapUserToSession(user: User): AuthSession {
-  const metadata = user.user_metadata as { name?: string; phone?: string; email?: string } | undefined;
-  const name = typeof metadata?.name === "string" && metadata.name.trim().length >= 2 ? metadata.name.trim() : "用户";
-  const phone = formatPhoneForDisplay(user.phone ?? metadata?.phone);
-  const email =
-    typeof user.email === "string" && user.email.trim()
-      ? user.email.trim().toLowerCase()
-      : normalizeEmail(metadata?.email ?? "");
-
-  return {
-    userId: user.id,
-    name,
-    phone,
-    email,
-    loginAt: user.last_sign_in_at ?? new Date().toISOString(),
-  };
-}
-
-async function readAccountMeta(userId: string): Promise<AccountMeta> {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("plan, monthly_quota, monthly_used, updated_at")
-    .eq("id", userId)
-    .single();
-
-  if (error) {
-    if (error.code === "PGRST116") {
-      return createDefaultAccountMeta();
-    }
-
-    throw new Error("读取用户资料失败，请检查 profiles 表是否已创建");
-  }
-
-  return normalizeAccountMeta(data);
-}
-
-async function syncFromSession(session: Session | null): Promise<void> {
-  if (!session?.user) {
+function syncFromSession(): void {
+  const session = getSession();
+  if (!session) {
     currentSession = null;
     currentAccountMeta = null;
-    emitAuthChange();
-    return;
+  } else {
+    currentSession = session;
+    const users = getUsers();
+    currentAccountMeta = users[session.userId]?.accountMeta || createDefaultAccountMeta();
   }
-
-  currentSession = mapUserToSession(session.user);
-
-  try {
-    currentAccountMeta = await readAccountMeta(session.user.id);
-  } catch {
-    currentAccountMeta = createDefaultAccountMeta();
-  }
-
   emitAuthChange();
 }
 
-function ensureAuthSubscription(): void {
-  if (!isBrowser() || authSubscriptionStarted || !isSupabaseConfigured()) {
-    return;
-  }
-
-  const supabase = createClient();
-  supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-    void syncFromSession(session);
-  });
-  authSubscriptionStarted = true;
-}
-
-async function refreshAuthState(): Promise<void> {
+export function initializeAuth(): Promise<void> {
   if (!isBrowser()) {
-    return;
+    return Promise.resolve();
   }
 
-  if (!isSupabaseConfigured()) {
-    currentSession = null;
-    currentAccountMeta = null;
-    emitAuthChange();
-    return;
+  if (!initPromise) {
+    initPromise = Promise.resolve().then(() => {
+      syncFromSession();
+      initPromise = null;
+    });
   }
 
-  const supabase = createClient();
-  const { data, error } = await supabase.auth.getSession();
-
-  if (error) {
-    throw new Error("读取登录状态失败，请稍后重试");
-  }
-
-  await syncFromSession(data.session ?? null);
-}
-
-async function parseApiError(response: Response, fallbackMessage: string): Promise<never> {
-  const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-  throw new Error(payload?.error ?? fallbackMessage);
-}
-
-async function applyAuthSession(payload: AuthApiSessionPayload, remember: boolean): Promise<void> {
-  setAuthStoragePersistence(remember);
-
-  const supabase = createClient();
-  const { error } = await supabase.auth.setSession({
-    access_token: payload.accessToken,
-    refresh_token: payload.refreshToken,
-  });
-
-  if (error) {
-    throw new Error("登录成功，但同步浏览器会话失败，请重新登录");
-  }
+  return initPromise;
 }
 
 function validateRegisterPayload(payload: RegisterPayload): void {
@@ -265,64 +161,49 @@ function validateRegisterPayload(payload: RegisterPayload): void {
   }
 }
 
-export function initializeAuth(): Promise<void> {
-  if (!isBrowser()) {
-    return Promise.resolve();
-  }
-
-  ensureAuthSubscription();
-
-  if (!initPromise) {
-    initPromise = refreshAuthState().finally(() => {
-      initPromise = null;
-    });
-  }
-
-  return initPromise;
-}
-
 export async function registerWithPhone(payload: RegisterPayload): Promise<AuthSession> {
   if (!isBrowser()) {
     throw new Error("当前环境不支持注册");
   }
 
-  assertSupabaseConfigured();
   validateRegisterPayload(payload);
 
-  const response = await fetch("/api/auth/register", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name: payload.name.trim(),
-      phone: normalizePhone(payload.phone),
-      email: normalizeEmail(payload.email),
-      password: payload.password,
-    }),
-  });
+  const phone = normalizePhone(payload.phone);
+  const email = normalizeEmail(payload.email);
+  const users = getUsers();
 
-  if (!response.ok) {
-    await parseApiError(response, "注册失败，请稍后再试");
+  const existingUser = Object.values(users).find(u => u.user.phone === phone);
+  if (existingUser) {
+    throw new Error("该手机号已注册，请直接登录");
   }
 
-  const payloadData = (await response.json().catch(() => null)) as RegisterApiPayload | null;
-  if (payloadData?.session?.accessToken && payloadData.session.refreshToken) {
-    await applyAuthSession(payloadData.session, true);
-    await refreshAuthState();
-
-    if (!currentSession) {
-      throw new Error("注册成功，但未能读取登录状态");
-    }
-
-    return currentSession;
+  const existingEmail = Object.values(users).find(u => u.user.email === email);
+  if (existingEmail) {
+    throw new Error("该邮箱已注册，请直接登录");
   }
 
-  return loginWithPhone({
-    phone: normalizePhone(payload.phone),
-    password: payload.password,
-    remember: true,
-  });
+  const userId = generateUserId();
+  const session: AuthSession = {
+    userId,
+    name: payload.name.trim(),
+    phone,
+    email,
+    loginAt: new Date().toISOString(),
+  };
+
+  users[userId] = {
+    user: session,
+    passwordHash: hashPassword(payload.password),
+    accountMeta: createDefaultAccountMeta(),
+  };
+
+  saveUsers(users);
+  saveSession(session);
+  currentSession = session;
+  currentAccountMeta = users[userId].accountMeta;
+  emitAuthChange();
+
+  return session;
 }
 
 export async function loginWithPhone(payload: LoginPayload): Promise<AuthSession> {
@@ -330,41 +211,34 @@ export async function loginWithPhone(payload: LoginPayload): Promise<AuthSession
     throw new Error("当前环境不支持登录");
   }
 
-  assertSupabaseConfigured();
-
   const phone = normalizePhone(payload.phone);
   if (!phone || payload.password.trim().length === 0) {
     throw new Error("请填写手机号和密码");
   }
 
-  const response = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      phone,
-      password: payload.password,
-    }),
-  });
-
-  if (!response.ok) {
-    await parseApiError(response, "登录失败，请稍后重试");
+  if (!isValidMainlandPhone(phone)) {
+    throw new Error("请输入有效的 11 位手机号");
   }
 
-  const payloadData = (await response.json()) as { session?: AuthApiSessionPayload };
-  if (!payloadData.session?.accessToken || !payloadData.session?.refreshToken) {
-    throw new Error("登录成功，但未获取到有效会话，请重试");
+  const users = getUsers();
+  const found = Object.values(users).find(u => u.user.phone === phone);
+
+  if (!found) {
+    throw new Error("手机号或密码错误，请重试");
   }
 
-  await applyAuthSession(payloadData.session, payload.remember);
-  await refreshAuthState();
-
-  if (!currentSession) {
-    throw new Error("登录成功，但未能读取登录状态");
+  if (found.passwordHash !== hashPassword(payload.password)) {
+    throw new Error("手机号或密码错误，请重试");
   }
 
-  return currentSession;
+  found.user.loginAt = new Date().toISOString();
+  saveUsers(users);
+  saveSession(found.user);
+  currentSession = found.user;
+  currentAccountMeta = found.accountMeta;
+  emitAuthChange();
+
+  return found.user;
 }
 
 export function getCurrentSession(): AuthSession | null {
@@ -380,9 +254,6 @@ export async function updateCurrentProfile(payload: UpdateProfilePayload): Promi
     throw new Error("当前环境不支持修改资料");
   }
 
-  assertSupabaseConfigured();
-  await initializeAuth();
-
   if (!currentSession) {
     throw new Error("请先登录后再修改资料");
   }
@@ -392,39 +263,17 @@ export async function updateCurrentProfile(payload: UpdateProfilePayload): Promi
     throw new Error("昵称至少需要 2 个字符");
   }
 
-  const supabase = createClient();
-  const { error: userError } = await supabase.auth.updateUser({
-    data: {
-      name,
-      phone: currentSession.phone,
-      email: currentSession.email,
-    },
-  });
-
-  if (userError) {
-    throw new Error(userError.message || "更新账户资料失败，请稍后再试");
+  const users = getUsers();
+  if (!users[currentSession.userId]) {
+    throw new Error("用户不存在");
   }
 
-  const { error: profileError } = await supabase.from("profiles").upsert({
-    id: currentSession.userId,
-    name,
-    phone: currentSession.phone,
-    email: currentSession.email,
-    plan: currentAccountMeta?.plan ?? "free",
-    monthly_quota: currentAccountMeta?.monthlyQuota ?? getMonthlyQuotaByPlan("free"),
-    monthly_used: currentAccountMeta?.monthlyUsed ?? 0,
-    updated_at: new Date().toISOString(),
-  });
+  users[currentSession.userId].user.name = name;
+  saveUsers(users);
 
-  if (profileError) {
-    throw new Error("更新账户资料失败，请检查 profiles 表和 RLS 策略");
-  }
-
-  await refreshAuthState();
-
-  if (!currentSession) {
-    throw new Error("资料已更新，但未能同步最新登录状态");
-  }
+  currentSession = users[currentSession.userId].user;
+  saveSession(currentSession);
+  emitAuthChange();
 
   return currentSession;
 }
@@ -434,9 +283,6 @@ export async function changePassword(payload: ChangePasswordPayload): Promise<vo
     throw new Error("当前环境不支持修改密码");
   }
 
-  assertSupabaseConfigured();
-  await initializeAuth();
-
   if (!currentSession) {
     throw new Error("请先登录后再修改密码");
   }
@@ -445,25 +291,27 @@ export async function changePassword(payload: ChangePasswordPayload): Promise<vo
     throw new Error("密码至少 6 位");
   }
 
-  const supabase = createClient();
-  const { error } = await supabase.auth.updateUser({ password: payload.password });
-
-  if (error) {
-    throw new Error(error.message || "修改密码失败，请稍后再试");
+  const users = getUsers();
+  if (!users[currentSession.userId]) {
+    throw new Error("用户不存在");
   }
+
+  users[currentSession.userId].passwordHash = hashPassword(payload.password);
+  saveUsers(users);
 }
 
 export async function setCurrentPlan(plan: AccountPlan): Promise<AccountMeta | null> {
   if (!isBrowser()) return null;
 
-  assertSupabaseConfigured();
-  await initializeAuth();
-
   if (!currentSession) {
     return null;
   }
 
-  const supabase = createClient();
+  const users = getUsers();
+  if (!users[currentSession.userId]) {
+    return null;
+  }
+
   const nextMeta: AccountMeta = {
     plan,
     monthlyQuota: getMonthlyQuotaByPlan(plan),
@@ -475,23 +323,11 @@ export async function setCurrentPlan(plan: AccountPlan): Promise<AccountMeta | n
     nextMeta.monthlyUsed = nextMeta.monthlyQuota;
   }
 
-  const { error } = await supabase.from("profiles").upsert({
-    id: currentSession.userId,
-    name: currentSession.name,
-    phone: currentSession.phone,
-    email: currentSession.email,
-    plan: nextMeta.plan,
-    monthly_quota: nextMeta.monthlyQuota,
-    monthly_used: nextMeta.monthlyUsed,
-    updated_at: nextMeta.updatedAt,
-  });
-
-  if (error) {
-    throw new Error("更新套餐失败，请检查 profiles 表和 RLS 策略");
-  }
-
+  users[currentSession.userId].accountMeta = nextMeta;
+  saveUsers(users);
   currentAccountMeta = nextMeta;
   emitAuthChange();
+
   return nextMeta;
 }
 
@@ -512,11 +348,9 @@ export function getQuotaDisplay(meta: AccountMeta): string {
 }
 
 export async function logout(): Promise<void> {
-  if (!isBrowser() || !isSupabaseConfigured()) return;
+  if (!isBrowser()) return;
 
-  const supabase = createClient();
-  await supabase.auth.signOut();
-  clearAuthStoragePersistence();
+  saveSession(null);
   currentSession = null;
   currentAccountMeta = null;
   emitAuthChange();
@@ -526,8 +360,6 @@ export function subscribeAuthChange(listener: () => void): () => void {
   if (!isBrowser()) {
     return () => {};
   }
-
-  ensureAuthSubscription();
 
   const handleAuthChange = () => listener();
   window.addEventListener(AUTH_CHANGE_EVENT, handleAuthChange);

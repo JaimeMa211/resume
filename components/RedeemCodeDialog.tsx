@@ -53,7 +53,7 @@ export default function RedeemCodeDialog({ open, onOpenChange }: RedeemCodeDialo
       return;
     }
 
-    const result = setCurrentPlan(entry.plan);
+    const result = await setCurrentPlan(entry.plan);
     if (result) {
       setSuccess(`兑换成功！您已成为 ${entry.description} 用户`);
       setTimeout(() => {
