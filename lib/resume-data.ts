@@ -13,9 +13,32 @@ import type {
 } from "@/components/templates/types";
 
 export const BUILDER_DRAFT_STORAGE_KEY = "resume-builder-draft-v2";
+export const BUILDER_DRAFTS_STORAGE_KEY = "resume-builder-drafts-v1";
+export const BUILDER_ACTIVE_DRAFT_ID_STORAGE_KEY = "resume-builder-active-draft-id-v1";
+
+export type StoredResumeDraft = {
+  id: string;
+  title: string;
+  updatedAt: string;
+  data: ResumeData;
+};
+
+export type ResumeDraftWorkspace = {
+  drafts: StoredResumeDraft[];
+  activeDraftId: string | null;
+};
 
 function safeText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function safeDateString(value: unknown): string {
+  const normalized = safeText(value);
+  return normalized || new Date().toISOString();
+}
+
+function createResumeDraftId(): string {
+  return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function normalizeStringList(value: unknown): string[] {
@@ -199,6 +222,148 @@ function createBaseResumeData(persona: ResumePersona): ResumeData {
 
 export function createEmptyResumeData(persona: ResumePersona = "graduate"): ResumeData {
   return createBaseResumeData(persona);
+}
+
+export function getResumeDraftTitle(data: ResumeData, fallback = "未命名简历"): string {
+  const name = safeText(data.personal_info.name);
+  const headline = safeText(data.personal_info.headline);
+  const firstCompany = safeText(data.work_experience[0]?.company);
+  const firstProject = safeText(data.projects[0]?.name);
+
+  if (name && headline) {
+    return `${name} · ${headline}`;
+  }
+
+  if (name) {
+    return `${name}的简历`;
+  }
+
+  if (headline) {
+    return headline;
+  }
+
+  if (firstCompany) {
+    return `${firstCompany} 简历`;
+  }
+
+  if (firstProject) {
+    return `${firstProject} 简历`;
+  }
+
+  return fallback;
+}
+
+function normalizeStoredResumeDraft(value: unknown): StoredResumeDraft | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const source = value as Record<string, unknown>;
+  const data = normalizeResumeData(source.data);
+
+  return {
+    id: safeText(source.id) || createResumeDraftId(),
+    title: safeText(source.title) || getResumeDraftTitle(data),
+    updatedAt: safeDateString(source.updatedAt),
+    data,
+  };
+}
+
+export function sortStoredResumeDrafts(drafts: StoredResumeDraft[]): StoredResumeDraft[] {
+  return [...drafts].sort((left, right) => {
+    const leftTime = Date.parse(left.updatedAt);
+    const rightTime = Date.parse(right.updatedAt);
+
+    return (Number.isFinite(rightTime) ? rightTime : 0) - (Number.isFinite(leftTime) ? leftTime : 0);
+  });
+}
+
+export function createStoredResumeDraft(
+  data: ResumeData,
+  overrides: Partial<Pick<StoredResumeDraft, "id" | "title" | "updatedAt">> = {},
+): StoredResumeDraft {
+  const normalized = normalizeResumeData(data);
+
+  return {
+    id: overrides.id?.trim() || createResumeDraftId(),
+    title: overrides.title?.trim() || getResumeDraftTitle(normalized),
+    updatedAt: safeDateString(overrides.updatedAt),
+    data: normalized,
+  };
+}
+
+export function readResumeDraftWorkspace(storage: Pick<Storage, "getItem">): ResumeDraftWorkspace {
+  try {
+    const rawDrafts = storage.getItem(BUILDER_DRAFTS_STORAGE_KEY);
+    const rawActiveDraftId = storage.getItem(BUILDER_ACTIVE_DRAFT_ID_STORAGE_KEY);
+
+    if (rawDrafts) {
+      const parsed = JSON.parse(rawDrafts) as unknown;
+      const drafts = Array.isArray(parsed)
+        ? sortStoredResumeDrafts(
+            parsed
+              .map((item) => normalizeStoredResumeDraft(item))
+              .filter((item): item is StoredResumeDraft => item !== null),
+          )
+        : [];
+
+      if (drafts.length > 0) {
+        const activeDraftId =
+          drafts.some((item) => item.id === rawActiveDraftId) ? rawActiveDraftId : drafts[0]?.id ?? null;
+
+        return {
+          drafts,
+          activeDraftId,
+        };
+      }
+    }
+
+    const legacyDraft = storage.getItem(BUILDER_DRAFT_STORAGE_KEY);
+    if (legacyDraft) {
+      const parsedLegacy = JSON.parse(legacyDraft) as unknown;
+      const draft = createStoredResumeDraft(normalizeResumeData(parsedLegacy));
+
+      return {
+        drafts: [draft],
+        activeDraftId: draft.id,
+      };
+    }
+  } catch {
+    return {
+      drafts: [],
+      activeDraftId: null,
+    };
+  }
+
+  return {
+    drafts: [],
+    activeDraftId: null,
+  };
+}
+
+export function writeResumeDraftWorkspace(
+  storage: Pick<Storage, "setItem" | "removeItem">,
+  workspace: ResumeDraftWorkspace,
+) {
+  const drafts = sortStoredResumeDrafts(workspace.drafts);
+  const activeDraftId = drafts.some((item) => item.id === workspace.activeDraftId)
+    ? workspace.activeDraftId
+    : drafts[0]?.id ?? null;
+  const activeDraft = drafts.find((item) => item.id === activeDraftId) ?? null;
+
+  storage.setItem(BUILDER_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+
+  if (activeDraftId) {
+    storage.setItem(BUILDER_ACTIVE_DRAFT_ID_STORAGE_KEY, activeDraftId);
+  } else {
+    storage.removeItem(BUILDER_ACTIVE_DRAFT_ID_STORAGE_KEY);
+  }
+
+  if (activeDraft) {
+    storage.setItem(BUILDER_DRAFT_STORAGE_KEY, JSON.stringify(activeDraft.data));
+  } else {
+    storage.removeItem(BUILDER_DRAFT_STORAGE_KEY);
+  }
 }
 
 export function createStarterResumeData(persona: ResumePersona = "graduate"): ResumeData {
@@ -456,7 +621,7 @@ export function toMultilineText(items: string[]): string {
 
 export function parseMultilineText(value: string): string[] {
   return value
-    .split(/\r?\n|,|，/)
+    .split(/\r?\n|,/)
     .map((item) => item.trim())
     .filter(Boolean);
 }

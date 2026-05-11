@@ -3,9 +3,11 @@
 import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   BriefcaseBusiness,
+  Copy,
   Download,
   FileStack,
   GraduationCap,
+  Sparkle,
   Languages,
   Medal,
   PencilLine,
@@ -17,7 +19,6 @@ import {
   Trophy,
   Trash2,
   UserRound,
-  WandSparkles,
 } from "lucide-react";
 
 import { ResumeBuilder, type ResumeBuilderHandle } from "@/components/ResumeBuilder";
@@ -38,12 +39,16 @@ import type {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  BUILDER_DRAFT_STORAGE_KEY,
   createEmptyResumeData,
+  createStoredResumeDraft,
   createStarterResumeData,
+  getResumeDraftTitle,
   normalizeResumeData,
   parseMultilineText,
+  readResumeDraftWorkspace,
+  type StoredResumeDraft,
   toMultilineText,
+  writeResumeDraftWorkspace,
 } from "@/lib/resume-data";
 import { RESUME_MODULE_CATALOG, getModuleLabel, getResumePersonaDefinition, getVisibleResumeModules } from "@/lib/resume-personas";
 import { cn } from "@/lib/utils";
@@ -55,9 +60,7 @@ type ProjectTextField = "name" | "role" | "duration";
 type AwardTextField = "name" | "issuer" | "date" | "detail";
 type CertificationTextField = "name" | "issuer" | "date";
 type LanguageTextField = "name" | "proficiency";
-type WorkspaceSectionId = "ai" | ResumeModuleId;
-
-type GenerateDraftResponse = ResumeData & { error?: string };
+type WorkspaceSectionId = ResumeModuleId;
 
 type SectionMeta = {
   id: WorkspaceSectionId;
@@ -66,6 +69,18 @@ type SectionMeta = {
   badge: string;
   icon: typeof Sparkles;
 };
+
+type SegmentAiAssistantProps = {
+  sectionTitle: string;
+  fieldLabel: string;
+  persona: ResumePersona;
+  value: string;
+  multiline?: boolean;
+  disabled?: boolean;
+  onApply: (value: string) => void;
+};
+
+type SegmentOptimizeMode = "concise" | "results";
 
 const inputClassName =
   "box-border h-11 w-full rounded-2xl border border-stone-300/80 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#d97745] focus:ring-4 focus:ring-[#f3d5c2]/60";
@@ -226,11 +241,152 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-function MiniStat({ title, value }: { title: string; value: string }) {
+function formatDraftUpdatedAt(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "刚刚保存";
+  }
+
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function SegmentAiAssistant({
+  sectionTitle,
+  fieldLabel,
+  persona,
+  value,
+  multiline = false,
+  disabled = false,
+  onApply,
+}: SegmentAiAssistantProps) {
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [suggestion, setSuggestion] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<SegmentOptimizeMode>("results");
+
+  async function handleOptimize() {
+    if (!value.trim()) {
+      setError("先填写这段内容，再让 AI 帮你优化。");
+      return;
+    }
+
+    setIsOptimizing(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/optimize-resume-segment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sectionTitle,
+          fieldLabel,
+          persona,
+          text: value,
+          mode,
+        }),
+      });
+
+      const payload = (await response.json()) as { optimizedText?: string; error?: string };
+      if (!response.ok || !payload.optimizedText) {
+        throw new Error(payload.error || "AI 优化失败");
+      }
+
+      setSuggestion(payload.optimizedText);
+    } catch (optimizeError) {
+      setError(optimizeError instanceof Error ? optimizeError.message : "AI 优化失败");
+    } finally {
+      setIsOptimizing(false);
+    }
+  }
+
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white/90 px-4 py-3">
-      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{title}</p>
-      <p className="mt-2 text-sm font-semibold text-slate-700">{value}</p>
+    <div className="mt-3 rounded-[20px] border border-stone-200 bg-stone-50/80 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">AI Assist</p>
+          <p className="mt-1 text-sm font-medium text-slate-700">只优化当前这段，不会改动其他内容</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-full border border-stone-300 bg-white p-1">
+            <button
+              type="button"
+              onClick={() => setMode("concise")}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                mode === "concise" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-stone-100",
+              )}
+            >
+              更简洁
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("results")}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                mode === "results" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-stone-100",
+              )}
+            >
+              更结果导向
+            </button>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-full border-stone-300 bg-white text-slate-800 hover:bg-stone-100"
+            onClick={handleOptimize}
+            disabled={disabled || isOptimizing}
+          >
+            <Sparkle className="h-3.5 w-3.5" />
+            {isOptimizing ? "优化中..." : "优化这段"}
+          </Button>
+        </div>
+      </div>
+
+      {error ? <p className="mt-3 text-xs text-red-600">{error}</p> : null}
+
+      {suggestion ? (
+        <div className="mt-3 space-y-3">
+          <div className="rounded-[16px] border border-[#e7c7ac] bg-[#fff7ef] p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a5a33]">AI 建议</p>
+            {multiline ? (
+              <pre className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">{suggestion}</pre>
+            ) : (
+              <p className="mt-2 text-sm leading-6 text-slate-700">{suggestion}</p>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              className="rounded-full bg-slate-900 px-3 text-white hover:bg-slate-800"
+              onClick={() => {
+                onApply(suggestion);
+                setSuggestion("");
+              }}
+            >
+              采用建议
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-full border-stone-300 bg-white text-slate-800 hover:bg-stone-100"
+              onClick={() => setSuggestion("")}
+            >
+              关闭
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -379,17 +535,13 @@ function countBadge(required: boolean, count: number, suffix: string) {
 
 export default function ResumeCreatorWorkspace() {
   const [draft, setDraft] = useState<ResumeData>(() => createStarterResumeData("graduate"));
+  const [drafts, setDrafts] = useState<StoredResumeDraft[]>([]);
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
   const resumeBuilderRef = useRef<ResumeBuilderHandle>(null);
   const [activeSection, setActiveSection] = useState<WorkspaceSectionId>("profile");
   const [hydrated, setHydrated] = useState(false);
   const [saveMessage, setSaveMessage] = useState("正在读取本地草稿...");
-  const [sourceText, setSourceText] = useState("");
-  const [targetRole, setTargetRole] = useState("");
   const [mobileBuilderTab, setMobileBuilderTab] = useState<"edit" | "preview">("edit");
-  const [jdText, setJdText] = useState("");
-  const [notes, setNotes] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generateError, setGenerateError] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -397,15 +549,25 @@ export default function ResumeCreatorWorkspace() {
 
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(BUILDER_DRAFT_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as unknown;
-        setDraft(normalizeResumeData(parsed));
-        setSaveMessage("已恢复上次编辑的草稿");
+      const workspace = readResumeDraftWorkspace(window.localStorage);
+      if (workspace.drafts.length > 0) {
+        const active = workspace.drafts.find((item) => item.id === workspace.activeDraftId) ?? workspace.drafts[0];
+        setDrafts(workspace.drafts);
+        setActiveDraftId(active?.id ?? null);
+        setDraft(active?.data ?? createStarterResumeData("graduate"));
+        setSaveMessage("已恢复上次编辑的简历草稿");
       } else {
-        setSaveMessage("当前为示例草稿，可以直接修改或切换身份预设");
+        const starter = createStoredResumeDraft(createStarterResumeData("graduate"));
+        setDrafts([starter]);
+        setActiveDraftId(starter.id);
+        setDraft(starter.data);
+        setSaveMessage("当前为示例简历，可直接修改或新建你的版本");
       }
     } catch {
+      const starter = createStoredResumeDraft(createStarterResumeData("graduate"));
+      setDrafts([starter]);
+      setActiveDraftId(starter.id);
+      setDraft(starter.data);
       setSaveMessage("草稿读取失败，已回退到示例内容");
     } finally {
       setHydrated(true);
@@ -413,20 +575,45 @@ export default function ResumeCreatorWorkspace() {
   }, []);
 
   useEffect(() => {
-    if (!hydrated) {
+    if (!hydrated || !activeDraftId) {
       return;
     }
 
-    window.localStorage.setItem(BUILDER_DRAFT_STORAGE_KEY, JSON.stringify(draft));
-    setSaveMessage("内容已自动保存在当前浏览器");
-  }, [draft, hydrated]);
+    setDrafts((current) => {
+      const nextDrafts = current.some((item) => item.id === activeDraftId)
+        ? current.map((item) =>
+            item.id === activeDraftId
+              ? {
+                  ...item,
+                  title: getResumeDraftTitle(draft, item.title),
+                  updatedAt: new Date().toISOString(),
+                  data: normalizeResumeData(draft),
+                }
+              : item,
+          )
+        : [
+            createStoredResumeDraft(draft, {
+              id: activeDraftId,
+            }),
+            ...current,
+          ];
+
+      writeResumeDraftWorkspace(window.localStorage, {
+        drafts: nextDrafts,
+        activeDraftId,
+      });
+
+      return nextDrafts;
+    });
+    setSaveMessage("内容已自动保存，可随时继续编辑之前的简历");
+  }, [activeDraftId, draft, hydrated]);
 
   const personaDefinition = useMemo(() => getResumePersonaDefinition(draft.persona), [draft.persona]);
   const visibleModuleRules = useMemo(() => getVisibleResumeModules(draft.persona), [draft.persona]);
   const visibleModuleIds = useMemo(() => visibleModuleRules.map((item) => item.id), [visibleModuleRules]);
 
   useEffect(() => {
-    if (activeSection !== "ai" && !visibleModuleIds.includes(activeSection)) {
+    if (!visibleModuleIds.includes(activeSection)) {
       setActiveSection(visibleModuleIds[0] ?? "profile");
     }
   }, [activeSection, visibleModuleIds]);
@@ -611,68 +798,76 @@ export default function ResumeCreatorWorkspace() {
     setSaveMessage(`已切换到${getResumePersonaDefinition(persona).label}预设，当前内容已保留`);
   }
 
-  async function handleGenerateDraft() {
-    if (!sourceText.trim() && !jdText.trim() && !notes.trim()) {
-      setGenerateError("请至少填写原始简历、JD 或补充说明中的一项，再让 AI 帮你起草。");
+  function createNewDraft() {
+    const next = createStoredResumeDraft(createEmptyResumeData(draft.persona), {
+      title: `新简历 ${drafts.length + 1}`,
+    });
+    setDraft(next.data);
+    setDrafts((current) => [next, ...current]);
+    setActiveDraftId(next.id);
+    setActiveSection("profile");
+    setSaveMessage("已新建空白简历，可继续填写");
+  }
+
+  function duplicateCurrentDraft() {
+    const duplicate = createStoredResumeDraft(draft, {
+      title: `${getResumeDraftTitle(draft)} 副本`,
+    });
+    setDraft(duplicate.data);
+    setDrafts((current) => [duplicate, ...current]);
+    setActiveDraftId(duplicate.id);
+    setSaveMessage("已复制当前简历，方便继续修改不同版本");
+  }
+
+  function switchToDraft(draftId: string) {
+    const next = drafts.find((item) => item.id === draftId);
+    if (!next || draftId === activeDraftId) {
       return;
     }
 
-    setIsGenerating(true);
-    setGenerateError(null);
+    setDraft(next.data);
+    setActiveDraftId(next.id);
+    setActiveSection("profile");
+    setSaveMessage(`已切换到《${next.title}》`);
+  }
 
-    try {
-      const response = await fetch("/api/generate-resume", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          persona: draft.persona,
-          sourceText,
-          targetRole,
-          jdText,
-          notes,
-        }),
-      });
-
-      const payload = (await response.json()) as GenerateDraftResponse;
-      if (!response.ok) {
-        throw new Error(payload.error || "AI 草稿生成失败");
-      }
-
-      setDraft({
-        ...normalizeResumeData(payload),
-        persona: draft.persona,
-      });
-      setSaveMessage("AI 草稿已生成，并同步写入当前工作区");
-      setActiveSection("profile");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "AI 草稿生成失败";
-      setGenerateError(message);
-    } finally {
-      setIsGenerating(false);
+  function deleteCurrentDraft() {
+    if (!activeDraftId) {
+      return;
     }
+
+    const remainingDrafts = drafts.filter((item) => item.id !== activeDraftId);
+    if (remainingDrafts.length === 0) {
+      const fallback = createStoredResumeDraft(createStarterResumeData(draft.persona));
+      setDrafts([fallback]);
+      setActiveDraftId(fallback.id);
+      setDraft(fallback.data);
+      setSaveMessage("已删除当前简历，并恢复一个示例版本");
+      return;
+    }
+
+    const nextActive = remainingDrafts[0];
+    setDrafts(remainingDrafts);
+    setActiveDraftId(nextActive.id);
+    setDraft(nextActive.data);
+    setSaveMessage(`已删除当前简历，正在编辑《${nextActive.title}》`);
   }
 
   function resetToEmpty() {
     const emptyDraft = createEmptyResumeData(draft.persona);
     setDraft(emptyDraft);
-    window.localStorage.setItem(BUILDER_DRAFT_STORAGE_KEY, JSON.stringify(emptyDraft));
     setSaveMessage("已清空当前草稿");
   }
 
   function resetToStarter() {
     const starterDraft = createStarterResumeData(draft.persona);
     setDraft(starterDraft);
-    window.localStorage.setItem(BUILDER_DRAFT_STORAGE_KEY, JSON.stringify(starterDraft));
     setSaveMessage(`已恢复${personaDefinition.label}示例简历`);
   }
 
   const documentTitle = draft.personal_info.name?.trim()
     ? `${draft.personal_info.name} 的简历`
-    : targetRole.trim()
-      ? `${targetRole.trim()} 简历`
-      : `${personaDefinition.label}简历`;
+    : `${personaDefinition.label}简历`;
 
   const sections: SectionMeta[] = useMemo(() => {
     const dynamicSections = visibleModuleRules.map((rule) => {
@@ -718,17 +913,8 @@ export default function ResumeCreatorWorkspace() {
       } satisfies SectionMeta;
     });
 
-    return [
-      {
-        id: "ai",
-        title: "AI 起草",
-        description: "粘贴旧简历、JD 或补充说明，先生成一版结构化内容。",
-        badge: isGenerating ? "生成中" : "可选",
-        icon: WandSparkles,
-      },
-      ...dynamicSections,
-    ];
-  }, [draft, isGenerating, personaDefinition, visibleModuleRules]);
+    return dynamicSections;
+  }, [draft, personaDefinition, visibleModuleRules]);
 
   const activeMeta = sections.find((section) => section.id === activeSection) ?? sections[0];
 
@@ -811,6 +997,13 @@ export default function ResumeCreatorWorkspace() {
                 : "例如：新闻传播专业应届生，拥有内容运营实习和校园活动策划经验，执行力强，能够快速理解业务并完成交付。"
             }
           />
+          <SegmentAiAssistant
+            sectionTitle={personaDefinition.summaryTitle}
+            fieldLabel={personaDefinition.summaryTitle}
+            persona={draft.persona}
+            value={draft.professional_summary}
+            onApply={(nextValue) => setDraft((current) => ({ ...current, professional_summary: nextValue }))}
+          />
         </Field>
       </SectionPanel>
     );
@@ -860,6 +1053,14 @@ export default function ResumeCreatorWorkspace() {
                   rows={5}
                   className="min-h-28 rounded-2xl border-stone-300 bg-white px-4 py-3"
                   placeholder="例如：负责内容排期与选题执行，支持多渠道传播并完成数据复盘。"
+                />
+                <SegmentAiAssistant
+                  sectionTitle={options.title}
+                  fieldLabel={`${options.title}亮点`}
+                  persona={draft.persona}
+                  value={toMultilineText(item.achievements)}
+                  multiline
+                  onApply={(nextValue) => options.onAchievementsChange(index, nextValue)}
                 />
               </Field>
             </ItemCard>
@@ -971,6 +1172,14 @@ export default function ResumeCreatorWorkspace() {
                   className="min-h-28 rounded-2xl border-stone-300 bg-white px-4 py-3"
                   placeholder="例如：负责校园讲座现场执行与嘉宾对接，协助完成宣传物料和报名流程搭建。"
                 />
+                <SegmentAiAssistant
+                  sectionTitle="校园经历"
+                  fieldLabel="校园经历亮点"
+                  persona={draft.persona}
+                  value={toMultilineText(item.highlights)}
+                  multiline
+                  onApply={(nextValue) => updateCampusHighlights(index, nextValue)}
+                />
               </Field>
             </ItemCard>
           ))}
@@ -1028,6 +1237,14 @@ export default function ResumeCreatorWorkspace() {
                   rows={5}
                   className="min-h-28 rounded-2xl border-stone-300 bg-white px-4 py-3"
                   placeholder="例如：设计后台数据看板和权限体系，支持运营团队自助分析和活动复盘。"
+                />
+                <SegmentAiAssistant
+                  sectionTitle="项目经历"
+                  fieldLabel="项目亮点"
+                  persona={draft.persona}
+                  value={toMultilineText(project.highlights)}
+                  multiline
+                  onApply={(nextValue) => updateProjectHighlights(index, nextValue)}
                 />
               </Field>
             </ItemCard>
@@ -1186,68 +1403,8 @@ export default function ResumeCreatorWorkspace() {
     );
   }
 
-  function renderAiSection() {
-    return (
-      <SectionPanel eyebrow="AI Draft" title="先让 AI 起一版，再人工打磨" description="AI 负责把原始信息结构化，你再基于身份预设完善重点模块。最终简历结构会和当前身份策略保持一致。">
-        <div className="grid gap-4 md:grid-cols-4">
-          <MiniStat title="当前身份" value={personaDefinition.label} />
-          <MiniStat title="目标岗位" value={targetRole.trim() || "未填写"} />
-          <MiniStat title="草稿状态" value={isGenerating ? "AI 生成中" : "随时可生成"} />
-          <MiniStat title="编辑保存" value={hydrated ? "本地自动保存" : "准备中"} />
-        </div>
-
-        <Field label="目标岗位" hint="可选，但有助于 AI 聚焦措辞">
-          <input value={targetRole} onChange={(event) => setTargetRole(event.target.value)} className={inputClassName} placeholder="例如：内容运营 / 前端工程师 / 产品经理" />
-        </Field>
-
-        <Field label="原始简历内容" hint="可以直接粘贴旧简历正文或 PDF 解析后的文本">
-          <Textarea
-            value={sourceText}
-            onChange={(event) => setSourceText(event.target.value)}
-            rows={8}
-            className="min-h-36 rounded-2xl border-stone-300 bg-white px-4 py-3"
-            placeholder="粘贴当前简历正文，或 PDF 解析出的文本内容。"
-          />
-        </Field>
-
-        <div className="grid gap-4 xl:grid-cols-2">
-          <Field label="职位描述 JD">
-            <Textarea
-              value={jdText}
-              onChange={(event) => setJdText(event.target.value)}
-              rows={7}
-              className="min-h-32 rounded-2xl border-stone-300 bg-white px-4 py-3"
-              placeholder="贴目标岗位 JD，让生成内容更贴近招聘方关注点。"
-            />
-          </Field>
-          <Field label="补充说明">
-            <Textarea
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              rows={7}
-              className="min-h-32 rounded-2xl border-stone-300 bg-white px-4 py-3"
-              placeholder="补充行业背景、想突出的问题、语气偏好或特殊经历。"
-            />
-          </Field>
-        </div>
-
-        {generateError ? <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{generateError}</div> : null}
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" className="h-11 rounded-full bg-slate-900 px-5 text-white hover:bg-slate-800" onClick={handleGenerateDraft} disabled={isGenerating}>
-            <WandSparkles className="h-4 w-4" />
-            {isGenerating ? "AI 生成中..." : "生成结构化草稿"}
-          </Button>
-          <p className="text-sm text-slate-500">生成后会覆盖当前工作区内容。建议先确认输入文本和身份预设是否正确。</p>
-        </div>
-      </SectionPanel>
-    );
-  }
-
   function renderActiveSection() {
     switch (activeSection) {
-      case "ai":
-        return renderAiSection();
       case "profile":
         return renderProfileSection();
       case "summary":
@@ -1366,6 +1523,60 @@ export default function ResumeCreatorWorkspace() {
             </p>
           </div>
         </div>
+
+        <div className="rounded-[22px] border border-stone-200 bg-white/82 px-4 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">My Resumes</p>
+              <h3 className="mt-1 text-base font-semibold text-slate-900">随时回到之前的简历继续修改</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-500">每份简历都会保存在本地浏览器里，你可以新建不同版本、复制当前版本，或切回之前做过的简历。</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" variant="outline" className="h-10 rounded-full border-stone-300 bg-white px-4 text-slate-800 hover:bg-stone-100" onClick={createNewDraft}>
+                <Plus className="h-4 w-4" />
+                新建简历
+              </Button>
+              <Button type="button" variant="outline" className="h-10 rounded-full border-stone-300 bg-white px-4 text-slate-800 hover:bg-stone-100" onClick={duplicateCurrentDraft}>
+                <Copy className="h-4 w-4" />
+                复制当前版本
+              </Button>
+              <Button type="button" variant="outline" className="h-10 rounded-full border-red-200 bg-white px-4 text-red-600 hover:bg-red-50" onClick={deleteCurrentDraft}>
+                <Trash2 className="h-4 w-4" />
+                删除当前版本
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {drafts.map((item) => {
+              const isActive = item.id === activeDraftId;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => switchToDraft(item.id)}
+                  className={cn(
+                    "rounded-[20px] border px-4 py-4 text-left transition",
+                    isActive
+                      ? "border-slate-900 bg-slate-900 text-white shadow-[0_16px_30px_rgba(15,23,42,0.16)]"
+                      : "border-stone-200 bg-white text-slate-800 hover:border-stone-300 hover:bg-stone-50",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="line-clamp-1 text-sm font-semibold">{item.title}</p>
+                    <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-semibold", isActive ? "bg-white/12 text-white/85" : "bg-stone-100 text-slate-500")}>
+                      {isActive ? "当前编辑" : "可切换"}
+                    </span>
+                  </div>
+                  <p className={cn("mt-2 text-xs", isActive ? "text-white/70" : "text-slate-500")}>最近保存：{formatDraftUpdatedAt(item.updatedAt)}</p>
+                  <p className={cn("mt-3 text-xs leading-5", isActive ? "text-white/75" : "text-slate-500")}>
+                    {item.data.personal_info.headline || getResumePersonaDefinition(item.data.persona).label}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* 移动端 Tab 切换栏（xl 以下显示） */}
@@ -1424,4 +1635,3 @@ export default function ResumeCreatorWorkspace() {
     </div>
   );
 }
-

@@ -41,7 +41,7 @@ function renderSection(section: ResumeTemplateSection) {
           </div>
           {entry.bullets && entry.bullets.length > 0 ? (
             <ul className="list-disc space-y-0.5 pl-4">
-              {entry.bullets.slice(0, 2).map((bullet) => (
+              {entry.bullets.map((bullet) => (
                 <li key={bullet}>{bullet}</li>
               ))}
             </ul>

@@ -13,8 +13,9 @@ import {
 import { Expand, LayoutTemplate, Minimize2, Minus, Plus } from "lucide-react";
 
 import { HarvardTemplate } from "@/components/templates/HarvardTemplate";
-import { MinimalistTemplate } from "@/components/templates/MinimalistTemplate";
 import { ModernTechTemplate } from "@/components/templates/ModernTechTemplate";
+import { AtsOptimizedTemplate } from "@/components/templates/AtsOptimizedTemplate";
+import { ProfessionalTemplate } from "@/components/templates/ProfessionalTemplate";
 import type { ResumeData, WorkExperience } from "@/components/templates/types";
 import { normalizeResumeData } from "@/lib/resume-data";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,12 @@ export type ResumeBuilderHandle = {
   print: () => void;
 };
 
-type TemplateKey = "harvard" | "modern-tech" | "minimalist";
+type TemplateKey =
+  | "harvard"
+  | "modern-tech"
+  | "minimalist"
+  | "ats-optimized"
+  | "professional";
 
 type TemplateOption = {
   key: TemplateKey;
@@ -36,9 +42,10 @@ type TemplateOption = {
 };
 
 const templateOptions: TemplateOption[] = [
-  { key: "harvard", label: "经典结构", subtitle: "适合通用求职" },
-  { key: "modern-tech", label: "现代双栏", subtitle: "适合互联网岗位" },
-  { key: "minimalist", label: "极简单页", subtitle: "适合作品导向内容" },
+  { key: "harvard", label: "经典结构", subtitle: "通用稳妥，适合大多数岗位" },
+  { key: "ats-optimized", label: "ATS 单栏", subtitle: "关键词清晰，机器筛选友好" },
+  { key: "professional", label: "专业商务", subtitle: "简洁专业，适合白领与职能岗" },
+  { key: "modern-tech", label: "现代双栏", subtitle: "信息密度高，适合互联网岗位" },
 ];
 
 const previewScaleSteps = [0.8, 0.9, 1, 1.1, 1.2, 1.35];
@@ -47,12 +54,16 @@ const A4_HEIGHT_PX = 1123;
 const PREVIEW_SAFE_PADDING_PX = 48;
 
 function renderTemplateNode(template: TemplateKey, data: ResumeData) {
-  if (template === "modern-tech") {
-    return <ModernTechTemplate data={data} />;
+  if (template === "ats-optimized") {
+    return <AtsOptimizedTemplate data={data} />;
   }
 
-  if (template === "minimalist") {
-    return <MinimalistTemplate data={data} />;
+  if (template === "professional") {
+    return <ProfessionalTemplate data={data} />;
+  }
+
+  if (template === "modern-tech") {
+    return <ModernTechTemplate data={data} />;
   }
 
   return <HarvardTemplate data={data} />;
@@ -62,48 +73,28 @@ function TemplateOptionCard({
   option,
   active,
   onClick,
-  data,
 }: {
   option: TemplateOption;
   active: boolean;
   onClick: () => void;
-  data: ResumeData;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "group rounded-[16px] border px-2.5 py-2 text-left transition",
+        "group min-w-[220px] rounded-[16px] border px-4 py-3 text-left transition",
         active
           ? "border-[#d7b08b] bg-[#fff7ef] text-slate-900 shadow-[0_10px_24px_rgba(184,92,44,0.10)]"
           : "border-stone-300 bg-white text-slate-700 hover:border-stone-400 hover:bg-stone-50",
       )}
     >
-      <div className="flex items-center gap-3">
-        <div
-          className={cn(
-            "relative h-10 w-16 shrink-0 overflow-hidden rounded-[12px] border bg-[#f6f1ea]",
-            active ? "border-[#e7c7ac]" : "border-stone-200",
-          )}
-        >
-          <div className="pointer-events-none absolute left-0 top-0 h-[1123px] w-[794px] origin-top-left scale-[0.08] overflow-hidden">
-            {renderTemplateNode(option.key, data)}
-          </div>
-          <div
-            className={cn(
-              "pointer-events-none absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t",
-              active ? "from-[#fff7ef] via-[#fff7ef]/70 to-transparent" : "from-white/95 via-white/65 to-transparent",
-            )}
-          />
+      <div className="min-w-0">
+        <div className="flex items-center justify-between gap-3">
+          <p className="truncate text-sm font-semibold leading-5">{option.label}</p>
+          {active ? <span className="shrink-0 rounded-full bg-[#f3dfcf] px-2 py-1 text-[11px] font-semibold text-[#9a5a33]">已选择</span> : null}
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold leading-5">{option.label}</p>
-            {active ? <span className="rounded-full bg-[#f3dfcf] px-2 py-1 text-[11px] font-semibold text-[#9a5a33]">已选择</span> : null}
-          </div>
-          <p className={cn("mt-0.5 text-xs leading-4", active ? "text-[#9a5a33]" : "text-slate-500")}>{option.subtitle}</p>
-        </div>
+        <p className={cn("mt-1 line-clamp-2 text-xs leading-5", active ? "text-[#9a5a33]" : "text-slate-500")}>{option.subtitle}</p>
       </div>
     </button>
   );
@@ -621,7 +612,7 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
           </select>
         </div>
 
-        <div className="mt-2 hidden gap-2 sm:grid sm:grid-cols-3">
+        <div className="mt-2 hidden gap-2 overflow-x-auto pb-1 sm:flex sm:flex-nowrap">
           {templateOptions.map((option) => {
             const active = option.key === selectedTemplate;
             return (
@@ -630,7 +621,6 @@ export const ResumeBuilder = forwardRef<ResumeBuilderHandle, ResumeBuilderProps>
                 option={option}
                 active={active}
                 onClick={() => setSelectedTemplate(option.key)}
-                data={normalizedData}
               />
             );
           })}

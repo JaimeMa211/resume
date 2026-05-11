@@ -15,7 +15,7 @@ import SiteFrame from "@/components/SiteFrame";
 import { siteContainerClass } from "@/lib/site-layout";
 import { cn } from "@/lib/utils";
 
-const trustIndicators = ["AI 定向优化", "本地草稿保存", "3 套模板联动", "PDF 导出"];
+const trustIndicators = ["AI 定向优化", "本地草稿保存", "4 套模板联动", "PDF 导出"];
 
 const heroStats = [
   { label: "接入方式", value: "PDF + 原文 + JD" },

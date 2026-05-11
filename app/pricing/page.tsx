@@ -38,7 +38,7 @@ const plans: Plan[] = [
     hint: "先试用",
     description: "跑通上传、优化、套版和导出。",
     note: "无需绑卡",
-    features: ["1 次 / 月 AI 优化", "基础岗位匹配", "3 套模板", "PDF 导出"],
+    features: ["1 次 / 月 AI 优化", "基础岗位匹配", "4 套模板", "PDF 导出"],
     cta: "免费开始",
   },
   {
@@ -80,7 +80,7 @@ const plans: Plan[] = [
 const compareRows = [
   { label: "计费方式", free: "免费", monthly: "按月", yearly: "按年", buyout: "一次买断" },
   { label: "优化额度", free: "1 次 / 月", monthly: "10 次 / 月", yearly: "50 次 / 月", buyout: "不限次数" },
-  { label: "模板范围", free: "3 套", monthly: "全部模板", yearly: "全部模板", buyout: "全部模板 + 更新" },
+  { label: "模板范围", free: "4 套", monthly: "全部模板", yearly: "全部模板", buyout: "全部模板 + 更新" },
   { label: "岗位定制", free: "基础", monthly: "支持", yearly: "支持", buyout: "支持" },
 ];
 

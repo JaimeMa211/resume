@@ -57,7 +57,7 @@ function renderSection(section: ResumeTemplateSection) {
           {entry.subtitle ? <p className="mb-1 text-[#5A6670]">{entry.subtitle}</p> : null}
           {entry.bullets && entry.bullets.length > 0 ? (
             <ul className="list-disc space-y-0.5 pl-4">
-              {entry.bullets.slice(0, 3).map((bullet) => (
+              {entry.bullets.map((bullet) => (
                 <li key={bullet}>{bullet}</li>
               ))}
             </ul>

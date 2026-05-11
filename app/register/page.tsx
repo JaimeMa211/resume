@@ -72,7 +72,7 @@ function getRegisterErrorMessage(error: unknown): string {
 
 const unlockItems = [
   "每月 3 次免费简历优化",
-  "3 套官方模板实时预览",
+  "4 套官方模板实时预览",
   "岗位匹配分与优化建议摘要",
 ];
 

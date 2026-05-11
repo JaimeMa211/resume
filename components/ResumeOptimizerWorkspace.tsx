@@ -10,7 +10,7 @@ import {
   type AccountMeta,
   type AuthSession,
 } from "@/lib/auth-client";
-import { BUILDER_DRAFT_STORAGE_KEY, normalizeResumeData } from "@/lib/resume-data";
+import { createStoredResumeDraft, readResumeDraftWorkspace, writeResumeDraftWorkspace } from "@/lib/resume-data";
 import { cn } from "@/lib/utils";
 
 type ExperienceItem = {
@@ -23,10 +23,6 @@ type OptimizeResponse = {
   match_score: number;
   optimizations: string[];
   new_experiences: ExperienceItem[];
-};
-
-type GenerateDraftResponse = ResumeData & {
-  error?: string;
 };
 
 type PreviewExperience = {
@@ -319,48 +315,6 @@ function inferPersonaFromResumeText(resumeText: string, result: OptimizeResponse
   return hasInternSignals ? "intern" : "graduate";
 }
 
-function extractTargetRoleFromJd(jdText: string): string {
-  const lines = jdText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  for (const line of lines.slice(0, 8)) {
-    const matched = line.match(/(?:职位|岗位|招聘岗位|应聘职位|目标岗位|target role|role)\s*[:：]\s*(.+)$/i);
-    if (matched?.[1]?.trim()) {
-      return matched[1].trim();
-    }
-  }
-
-  return lines.find((line) => line.length <= 24 && !/[。；;，,]/.test(line)) ?? "";
-}
-
-function buildBuilderNotes(result: OptimizeResponse): string {
-  const sections = [
-    "请基于原始简历事实生成一份进入制作页后可直接导出 PDF 的完整简历草稿。",
-    "优先采用以下 AI 优化后的表达写入对应模块，并补齐原简历中已有的联系方式、教育、项目、证书、校园经历等结构化信息。",
-    "不要把“AI 优化摘要”“原文参考”“高亮说明”“待补充”等说明性文案直接写入最终简历；缺失信息宁可留空也不要虚构。",
-  ];
-
-  if (result.optimizations.length > 0) {
-    sections.push(`【AI 优化摘要】\n${result.optimizations.map((item, index) => `${index + 1}. ${item}`).join("\n")}`);
-  }
-
-  if (result.new_experiences.length > 0) {
-    sections.push(
-      `【优先采用的优化经历表述】\n${result.new_experiences
-        .map((item, index) => {
-          const title = [item.company, item.role].filter(Boolean).join(" | ") || `经历 ${index + 1}`;
-          const details = item.details.map((detail) => `- ${detail}`).join("\n");
-          return `${index + 1}. ${title}${details ? `\n${details}` : ""}`;
-        })
-        .join("\n\n")}`,
-    );
-  }
-
-  return sections.join("\n\n");
-}
-
 export default function ResumeOptimizerWorkspace() {
   const [resumeText, setResumeText] = useState("");
   const [jdText, setJdText] = useState("");
@@ -492,32 +446,19 @@ export default function ResumeOptimizerWorkspace() {
     setError(null);
 
     try {
-      const response = await fetch("/api/generate-resume", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          persona: inferPersonaFromResumeText(resumeText, result),
-          sourceText: resumeText,
-          targetRole: extractTargetRoleFromJd(jdText),
-          jdText,
-          notes: buildBuilderNotes(result),
-        }),
+      const nextDraft = createStoredResumeDraft({
+        ...templateResumeData,
+        persona: inferPersonaFromResumeText(resumeText, result),
       });
-
-      const payload = (await response.json()) as GenerateDraftResponse;
-      if (!response.ok) {
-        throw new Error(payload.error || "制作页草稿生成失败");
-      }
-
-      window.localStorage.setItem(BUILDER_DRAFT_STORAGE_KEY, JSON.stringify(normalizeResumeData(payload)));
+      const workspace = readResumeDraftWorkspace(window.localStorage);
+      writeResumeDraftWorkspace(window.localStorage, {
+        drafts: [nextDraft, ...workspace.drafts.filter((item) => item.id !== nextDraft.id)],
+        activeDraftId: nextDraft.id,
+      });
       window.location.href = "/builder";
       return;
     } catch {
-      window.localStorage.setItem(BUILDER_DRAFT_STORAGE_KEY, JSON.stringify(normalizeResumeData({ ...templateResumeData, persona: inferPersonaFromResumeText(resumeText, result) })));
-      window.location.href = "/builder";
-      return;
+      setError("进入制作页失败，请稍后重试。");
     } finally {
       setIsPreparingBuilder(false);
     }

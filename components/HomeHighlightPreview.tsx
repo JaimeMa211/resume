@@ -43,8 +43,9 @@ const personaPresets = {
 
 const templatePresets = [
   { id: "harvard", label: "模板 1", alias: "Harvard", tone: "经典稳妥", accent: "bg-[#111827] text-white" },
-  { id: "modern", label: "模板 2", alias: "Modern", tone: "现代双栏", accent: "bg-[#b85c2c] text-white" },
-  { id: "minimal", label: "模板 3", alias: "Minimal", tone: "简约单页", accent: "bg-[#f7efe6] text-[#9a4e25]" },
+  { id: "ats", label: "模板 2", alias: "ATS", tone: "机器筛选友好", accent: "bg-[#e8eef5] text-[#35506a]" },
+  { id: "professional", label: "模板 3", alias: "Professional", tone: "简洁专业商务风", accent: "bg-[#eef5fb] text-[#315b7c]" },
+  { id: "modern", label: "模板 4", alias: "Modern", tone: "现代双栏", accent: "bg-[#b85c2c] text-white" },
 ] as const;
 
 const inputChannels = [

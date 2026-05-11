@@ -8,8 +8,11 @@ type ModernTechTemplateProps = {
 
 function SectionTitle({ title }: { title: string }) {
   return (
-    <div className="mb-2 border-t border-[#2B8CD6] pt-1">
-      <h2 className="text-[22px] font-black tracking-[0.06em] text-[#2B8CD6]">{title}</h2>
+    <div className="mb-2 flex items-center gap-3">
+      <span className="h-5 w-1.5 rounded-full bg-[#2B8CD6]" />
+      <div className="min-w-0 flex-1 border-b border-[#b8d6ea] pb-1">
+        <h2 className="text-[13px] font-black tracking-[0.16em] text-[#1b4f75]">{title}</h2>
+      </div>
     </div>
   );
 }
@@ -56,7 +59,7 @@ function renderSection(section: ResumeTemplateSection) {
           {entry.subtitle ? <p className="mb-1 font-semibold text-[#2F3E4A]">{entry.subtitle}</p> : null}
           {entry.bullets && entry.bullets.length > 0 ? (
             <ul className="list-disc space-y-0.5 pl-4">
-              {entry.bullets.slice(0, 3).map((bullet) => (
+              {entry.bullets.map((bullet) => (
                 <li key={bullet}>{bullet}</li>
               ))}
             </ul>
@@ -71,8 +74,8 @@ export function ModernTechTemplate({ data }: ModernTechTemplateProps) {
   const sections = buildResumeTemplateSections(data);
 
   return (
-    <article className="h-full bg-white px-8 pt-4 pb-7 text-[10px] leading-[1.55] text-[#1F2933] print:pt-2">
-      <header className="mb-4 border-t border-[#222] pt-2 print:mb-3 print:pt-1">
+    <article className="h-full bg-[linear-gradient(180deg,#f4fbff_0%,#ffffff_22%)] px-8 pt-4 pb-7 text-[10px] leading-[1.6] text-[#1F2933] print:pt-2">
+      <header className="mb-4 rounded-[22px] border border-[#d6e8f4] bg-white px-5 py-4 shadow-[0_12px_28px_rgba(43,140,214,0.08)] print:mb-3 print:pt-1">
         <PersonalInfoHeader
           data={data}
           className="grid-cols-[96px_minmax(160px,210px)_minmax(0,1fr)] gap-5"
@@ -89,7 +92,7 @@ export function ModernTechTemplate({ data }: ModernTechTemplateProps) {
 
       <div className="space-y-3">
         {sections.map((section) => (
-          <section key={section.id}>
+          <section key={section.id} className="rounded-[18px] border border-[#d9e8f2] bg-white px-4 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
             <SectionTitle title={section.title} />
             {renderSection(section)}
           </section>
