@@ -4,8 +4,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 FROM base AS deps
 WORKDIR /app
+ARG NPM_REGISTRY=https://registry.npmmirror.com
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm config set registry ${NPM_REGISTRY} && npm ci
 
 FROM base AS builder
 WORKDIR /app
@@ -29,5 +30,8 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 3000
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=6 \
+  CMD node -e "fetch('http://127.0.0.1:3000').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 CMD ["node", "server.js"]
